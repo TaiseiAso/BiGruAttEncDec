@@ -17,8 +17,8 @@ torch.backends.cudnn.benchmark = True
 device_name = 'cuda:0' if torch.cuda.is_available() else 'cpu'
 device = torch.device(device_name)
 
-glove_vectors = load_glove("./data/glove.840B.300d.txt")
 target_dict = create_dictionary("./data/resource.txt", MAX_VOCAB_SIZE)
+glove_vectors = load_glove("./data/glove.840B.300d.txt", target_dict)
 
 if args.mode != 'test':
     dialog_buckets = create_dialog_buckets(load_dialog_corpus("./data/trainset.txt", MAX_DIALOG_CORPUS_SIZE), BUCKET_SIZE)
@@ -83,4 +83,7 @@ else:
         input_tensor = batch_to_tensor([input], glove_vectors, device)
         hs, h = encoder(input_tensor)
         greedy_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device)
-        print(input, greedy_res, output)
+        print("post: ", ' '.join(input))
+        print("answer: ", ' '.join(output))
+        print("greedy: ", ' '.join(greedy_res))
+        print()

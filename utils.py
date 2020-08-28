@@ -17,15 +17,16 @@ def load_dialog_corpus(path, max_size=-1):
     return corpus
 
 
-def load_glove(path):
+def load_glove(path, dict):
     vectors = {}
     with open(path, 'r', encoding="utf-8") as f:
         for idx, line in enumerate(f):
             if idx == MAX_GROVE_TEST: break
             s = line.strip()
             word = s[:s.find(' ')]
-            vector = s[s.find(' ') + 1:]
-            vectors[word] = list(map(float, vector.split()))
+            if word in dict['word2idx']:
+                vector = s[s.find(' ') + 1:]
+                vectors[word] = list(map(float, vector.split()))
     vectors['_NONE'] = np.zeros(GLOVE_SIZE, dtype=np.float32)
     return vectors
 
