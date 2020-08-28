@@ -1,0 +1,6 @@
+test*.py
+model/
+log/
+data/
+_*/
+.*/
