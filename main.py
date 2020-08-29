@@ -14,7 +14,7 @@ args = parser.parse_args()
 
 torch.backends.cudnn.benchmark = True
 
-device_name = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+device_name = 'cuda:'+str(CUDA) if torch.cuda.is_available() else 'cpu'
 device = torch.device(device_name)
 
 target_dict = create_dictionary("./data/resource.txt", MAX_VOCAB_SIZE)
@@ -24,7 +24,7 @@ if args.mode != 'test':
     dialog_buckets = create_dialog_buckets(load_dialog_corpus("./data/trainset.txt", MAX_DIALOG_CORPUS_SIZE), BUCKET_SIZE)
 
     encoder = Encoder(GLOVE_SIZE, HIDDEN_SIZE, LAYER, DROPOUT).to(device)
-    decoder = Decoder(target_dict['nword'], GLOVE_SIZE, HIDDEN_SIZE*2, LAYER, DROPOUT).to(device)
+    decoder = Decoder(target_dict['nword'], GLOVE_SIZE, HIDDEN_SIZE * 2, LAYER, DROPOUT).to(device)
     encoder.train()
     decoder.train()
 
@@ -38,7 +38,7 @@ if args.mode != 'test':
             epoch_loss = 0
             dialog_batchs = create_dialog_batchs(dialog_buckets)
 
-            for input_batch_length, input_batch, output_batch in dialog_batchs:
+            for input_batch_length, output_batch_length, input_batch, output_batch in dialog_batchs:
                 encoder_optimizer.zero_grad()
                 decoder_optimizer.zero_grad()
 
@@ -47,7 +47,7 @@ if args.mode != 'test':
                 output_source_batch_tensor = batch_to_tensor(np_output_batch[:, :-1], glove_vectors, device)
                 output_target_batch_tensor = batch_to_id_tensor(np_output_batch[:, 1:], target_dict, device)
 
-                hs, h = encoder(input_batch_tensor)
+                hs, h = encoder(input_batch_tensor, input_batch_length)
 
                 loss = 0
                 decoder_output, _, attention_weight = decoder(output_source_batch_tensor, hs, h, input_batch_length, device)
@@ -55,7 +55,7 @@ if args.mode != 'test':
                     loss += criterion(decoder_output[:, i, :], output_target_batch_tensor[:, i])
                 loss.backward()
 
-                epoch_loss += loss.item() / decoder_output.size()[1]
+                epoch_loss += loss.item()
 
                 encoder_optimizer.step()
                 decoder_optimizer.step()
@@ -79,11 +79,12 @@ else:
     encoder.eval()
     decoder.eval()
 
-    for input, output in dialog_corpus:
-        input_tensor = batch_to_tensor([input], glove_vectors, device)
-        hs, h = encoder(input_tensor)
-        greedy_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device)
-        print("post: ", ' '.join(input))
-        print("answer: ", ' '.join(output))
-        print("greedy: ", ' '.join(greedy_res))
-        print()
+    with torch.no_grad():
+        for input, output in dialog_corpus:
+            input_tensor = batch_to_tensor([input], glove_vectors, device)
+            hs, h = encoder(input_tensor)
+            greedy_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device)
+            print("post: ", ' '.join(input))
+            print("answer: ", ' '.join(output))
+            print("greedy: ", ' '.join(greedy_res))
+            print()

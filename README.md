@@ -3,18 +3,20 @@
 ## Goal
 - generic and easy method using knowledge graph
 - improve information, diversity, appropriateness
-- reform decoding method and objective function
+- reform decoding method (and objective function)
 
 ## Dataset
 - use dataset for CCM
 (Commonsense Knowledge Aware Conversation Generation with Graph Attention)  
 - Commonsense Conversation Dataset (English)
 - embedding vector is GloVe
+- dialog data from Reddit (not Twitter)
 - commonsense is ConceptNet
 
 ## Environment
-- python 3.6.5
-- pytorch 0.4.1
+- python 3.6.8
+- pytorch 1.1.0
+- CUDA 10.1
 
 ## Implement
 ### model

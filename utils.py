@@ -56,10 +56,8 @@ def create_dialog_buckets(corpus, bucket_size):
         target_len = len(dialog[1])
         for bucket_id in range(bucket_cnt):
             if source_len <= bucket_size[bucket_id][0] and target_len < bucket_size[bucket_id][1]:
-                dialog[0].extend(['_PAD'] * (bucket_size[bucket_id][0] - source_len))
                 dialog[1].insert(0, '_GO')
                 dialog[1].append('_EOS')
-                dialog[1].extend(['_PAD'] * (bucket_size[bucket_id][1] - target_len - 1))
                 buckets[bucket_id].append(dialog)
                 break
     return [bucket for bucket in buckets if bucket != []]
@@ -71,12 +69,25 @@ def create_dialog_batchs(buckets):
         random.shuffle(bucket)
         bucket_size = len(bucket)
         for i in range(0, bucket_size, BATCH_SIZE):
-            input_batch_length, input_batch, output_batch = [], [], []
+            input_batch_length, output_batch_length, input_batch, output_batch = [], [], [], []
             for input, output in bucket[i : min(i+BATCH_SIZE, bucket_size)]:
-                input_batch_length.append(len(input) - input.count('_PAD'))
+                input_batch_length.append(len(input))
+                output_batch_length.append(len(output))
                 input_batch.append(input)
                 output_batch.append(output)
-            batchs.append([input_batch_length, input_batch, output_batch])
+
+            arg = np.argsort(input_batch_length)[::-1]
+            input_batch_length = [input_batch_length[idx] for idx in arg]
+            output_batch_length = [output_batch_length[idx] for idx in arg]
+            input_batch = [input_batch[idx] for idx in arg]
+            output_batch = [output_batch[idx] for idx in arg]
+
+            max_input_batch_length = input_batch_length[0]
+            max_output_batch_length = max(output_batch_length)
+            for j in range(len(input_batch_length)):
+                input_batch[j].extend(['_PAD'] * (max_input_batch_length - input_batch_length[j]))
+                output_batch[j].extend(['_PAD'] * (max_output_batch_length - output_batch_length[j]))
+            batchs.append([input_batch_length, output_batch_length, input_batch, output_batch])
     random.shuffle(batchs)
     return batchs
 

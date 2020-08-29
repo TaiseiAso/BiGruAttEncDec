@@ -9,9 +9,11 @@ class Encoder(nn.Module):
         super(Encoder, self).__init__()
         self.gru = nn.GRU(embedding_dim, hidden_dim, layer, batch_first=True, dropout=dropout, bidirectional=True)
 
-    def forward(self, embeddings):
+    def forward(self, embeddings, lengths):
+        embeddings = nn.utils.rnn.pack_padded_sequence(embeddings, lengths=lengths, batch_first=True)
         hs, h = self.gru(embeddings)
-        h = torch.split(h, 2, dim=0)
+        hs, _ = nn.utils.rnn.pad_packed_sequence(hs, batch_first=True, total_length=max(lengths))
+        h = torch.chunk(h, 2, dim=0)
         h = torch.cat([h[0], h[1]], dim=2)
         return hs, h
 
@@ -29,7 +31,8 @@ class Decoder(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_dim, layer, dropout=0):
         super(Decoder, self).__init__()
         self.gru = nn.GRU(embedding_dim, hidden_dim, layer, batch_first=True, dropout=dropout)
-        self.hidden2linear = nn.Linear(hidden_dim * 2, vocab_size)
+        self.concat = nn.Linear(hidden_dim * 2, hidden_dim)
+        self.hidden2linear = nn.Linear(hidden_dim, vocab_size)
         self.softmax = nn.Softmax(dim=1)
         self.log_softmax = nn.LogSoftmax(dim=2)
 
@@ -51,6 +54,7 @@ class Decoder(nn.Module):
             c = torch.cat([c, weight_sum], dim=1)
         c = c[:, 1:, :]
         output = torch.cat([output, c], dim=2)
+        output = torch.tanh(self.concat(output))
         output = self.hidden2linear(output)
         output = self.log_softmax(output)
         return output, h, attention_weight
