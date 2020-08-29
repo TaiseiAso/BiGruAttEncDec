@@ -82,7 +82,7 @@ def create_dialog_batchs(buckets):
             input_batch = [input_batch[idx] for idx in arg]
             output_batch = [output_batch[idx] for idx in arg]
 
-            max_input_batch_length = input_batch_length[0]
+            max_input_batch_length = max(input_batch_length)
             max_output_batch_length = max(output_batch_length)
             for j in range(len(input_batch_length)):
                 input_batch[j].extend(['_PAD'] * (max_input_batch_length - input_batch_length[j]))

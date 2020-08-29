@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class Encoder(nn.Module):
@@ -10,9 +11,11 @@ class Encoder(nn.Module):
         self.gru = nn.GRU(embedding_dim, hidden_dim, layer, batch_first=True, dropout=dropout, bidirectional=True)
 
     def forward(self, embeddings, lengths):
-        embeddings = nn.utils.rnn.pack_padded_sequence(embeddings, lengths=lengths, batch_first=True)
+        if lengths:
+            embeddings = nn.utils.rnn.pack_padded_sequence(embeddings, lengths=lengths, batch_first=True)
         hs, h = self.gru(embeddings)
-        hs, _ = nn.utils.rnn.pad_packed_sequence(hs, batch_first=True, total_length=max(lengths))
+        if lengths:
+            hs, _ = nn.utils.rnn.pad_packed_sequence(hs, batch_first=True, total_length=lengths[0])
         h = torch.chunk(h, 2, dim=0)
         h = torch.cat([h[0], h[1]], dim=2)
         return hs, h
@@ -33,8 +36,6 @@ class Decoder(nn.Module):
         self.gru = nn.GRU(embedding_dim, hidden_dim, layer, batch_first=True, dropout=dropout)
         self.concat = nn.Linear(hidden_dim * 2, hidden_dim)
         self.hidden2linear = nn.Linear(hidden_dim, vocab_size)
-        self.softmax = nn.Softmax(dim=1)
-        self.log_softmax = nn.LogSoftmax(dim=2)
 
     def forward(self, embeddings, hs, h, mask, device):
         output, h = self.gru(embeddings, h)
@@ -45,7 +46,7 @@ class Decoder(nn.Module):
                 for j in range(mask[i], s.size()[1]):
                     for k in range(s.size()[2]):
                         s[i, j, k] = float('-inf')
-        attention_weight = self.softmax(s)
+        attention_weight = F.softmax(s, dim=1)
         c = torch.zeros(hs.size()[0], 1, hs.size()[2]).to(device)
         for i in range(attention_weight.size()[2]):
             unsq_weight = attention_weight[:, :, i].unsqueeze(2)
@@ -56,7 +57,6 @@ class Decoder(nn.Module):
         output = torch.cat([output, c], dim=2)
         output = torch.tanh(self.concat(output))
         output = self.hidden2linear(output)
-        output = self.log_softmax(output)
         return output, h, attention_weight
 
     def save(self, path):

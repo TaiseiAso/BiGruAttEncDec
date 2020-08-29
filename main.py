@@ -1,8 +1,8 @@
 # coding: utf-8
 
 import argparse
-import torch.optim as optim
 import math
+import torch.optim as optim
 from model import *
 from decode import *
 from param import *
@@ -51,6 +51,7 @@ if args.mode != 'test':
 
                 loss = 0
                 decoder_output, _, attention_weight = decoder(output_source_batch_tensor, hs, h, input_batch_length, device)
+                decoder_output = F.log_softmax(decoder_output, dim=2)
                 for i in range(decoder_output.size()[1]):
                     loss += criterion(decoder_output[:, i, :], output_target_batch_tensor[:, i])
                 loss.backward()
@@ -67,10 +68,10 @@ if args.mode != 'test':
     except KeyboardInterrupt:
         print("Done")
 
-    encoder.save("./model/encoder.pth")
-    decoder.save("./model/decoder.pth")
+    encoder.save("./model/encoder_.pth")
+    decoder.save("./model/decoder_.pth")
 else:
-    dialog_corpus = load_dialog_corpus("./data/testset.txt", MAX_TEST_DIALOG_CORPUS_SIZE)
+    dialog_corpus = load_dialog_corpus("./data/trainset.txt", MAX_TEST_DIALOG_CORPUS_SIZE)
 
     encoder = Encoder(GLOVE_SIZE, HIDDEN_SIZE, LAYER, 0).to(device)
     decoder = Decoder(target_dict['nword'], GLOVE_SIZE, HIDDEN_SIZE * 2, LAYER, 0).to(device)
@@ -82,9 +83,17 @@ else:
     with torch.no_grad():
         for input, output in dialog_corpus:
             input_tensor = batch_to_tensor([input], glove_vectors, device)
-            hs, h = encoder(input_tensor)
-            greedy_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device)
+            hs, h = encoder(input_tensor, None)
             print("post: ", ' '.join(input))
             print("answer: ", ' '.join(output))
+            greedy_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device)
             print("greedy: ", ' '.join(greedy_res))
+            sampling_res = sampling_search(decoder, hs, h, glove_vectors, target_dict, device, 0.4)
+            print("sampling: ", ' '.join(sampling_res))
+            top_k_sampling_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device, 10, 0.4)
+            print("top-k sampling: ", ' '.join(top_k_sampling_res))
+            top_p_sampling_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device, 0.5, 0.4)
+            print("top-p sampling: ", ' '.join(top_p_sampling_res))
+            mmi_antiLM_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device, 0.2)
+            print("MMI-antiLM: ", ' '.join(mmi_antiLM_res))
             print()
