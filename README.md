@@ -18,6 +18,15 @@
 - pytorch 1.1.0
 - CUDA 10.1
 
+## Run
+1. download CCM dataset
+2. create folders (./data and ./log and ./model)
+3. dataset into ./data folder
+4. edit param.py
+5. $ python main.py
+6. stop learning with Ctrl+C
+7. $ python main.py -m test
+
 ## Implement
 ### model
 - [x] prepare data
@@ -28,12 +37,12 @@
 
 ### decoding method
 - [x] greedy search
-- [ ] sampling
-- [ ] top-k sampling
-- [ ] top-p sampling
+- [x] sampling
+- [x] top-k sampling
+- [x] top-p sampling
 - [ ] beam search
 - [ ] diverse beam search
-- [ ] maximum mutual information
+- [x] maximum mutual information
 - [ ] \+ with knowledge graph
 
 ### objective function

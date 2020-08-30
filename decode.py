@@ -81,3 +81,42 @@ def mmi_antiLM_search(decoder, hs, h, glove, dict, device, lam):
         res.append(token)
         source_tensor = batch_to_tensor([[token]], glove, device)
     return res
+
+
+def beam_search(decoder, hs, h, glove, dict, device, B, a, gam):
+    return diverse_beam_search(decoder, hs, h, glove, dict, device, B, 1, a, gam, 0)
+
+
+def diverse_beam_search(decoder, hs, h, glove, dict, device, B, G, a, gam, lam):
+    ress = []
+    beam_sizes = [B] * G
+    beams = [[{'res': ['_GO'], 'score': 0, 'hidden': h}] for _ in range(G)]
+    for _ in range(MAX_TEST_LENGTH):
+        for g in range(G):
+            if beam_sizes[g] == 0: continue
+            next_beams = []
+            for beam in beams[g]:
+                source_tensor = batch_to_tensor([beam['res'][-1]], glove, device)
+                out, next_h, _ = decoder(source_tensor, hs, beam['hidden'], None, device)
+                out = (F.log_softmax(out[0, 0], dim=0) + beam['score']).tolist()
+                ranks = [o / (len(beam['res']) ** a) for o in out]
+                for h in range(g):
+                    if beam_sizes[h] == 0: continue
+                    for beam_ in beams[h]:
+                        idx = dict['word2idx'][beam_['res'][-1]]
+                        ranks[idx] -= lam
+                arg = np.argsort(ranks).tolist()[::-1][:beam_sizes[g]]
+                for i, idx in enumerate(arg):
+                    next_beams.append({'res': beam['res']+[dict['idx2word'][idx]], 'score': out[idx], 'hidden': next_h, 'penalty': i * gam})
+            next_beams = sorted(next_beams, key=lambda x: x['score']-x['penalty'], reverse=True)[:beam_sizes[g]]
+            beams[g] = []
+            for next_beam in next_beams:
+                if next_beam['res'][-1] == '_EOS':
+                    beam_sizes[g] -= 1
+                    ress.append({'res': next_beam['res'][1:-1], 'score': next_beam['score'] / ((len(next_beam['res'])-1) ** a)})
+                else:
+                    del next_beam['penalty']
+                    beams[g].append(next_beam)
+        if len(ress) == B*G: break
+    ress = sorted(ress, key=lambda x: x['score'], reverse=True)
+    return ress[0]['res']
