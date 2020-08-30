@@ -26,6 +26,7 @@
 5. $ python main.py
 6. stop learning with Ctrl+C
 7. $ python main.py -m test
+8. $ python main.py -m eval
 
 ## Implement
 ### model
@@ -40,8 +41,8 @@
 - [x] sampling
 - [x] top-k sampling
 - [x] top-p sampling
-- [ ] beam search
-- [ ] diverse beam search
+- [x] beam search
+- [x] diverse beam search
 - [x] maximum mutual information
 - [ ] \+ with knowledge graph
 
@@ -54,13 +55,14 @@
 - [ ] entity score
 
 ### automatic evaluation
-- [ ] length
-- [ ] BLEU
+- [x] Length
+- [x] BLEU
 - [ ] NIST
 - [ ] ROUGE
-- [ ] dist
+- [x] DIST
+- [x] Repeat
 - [ ] METEOR
-- [ ] entity score
+- [x] Entity score
 
 ### advance
 - [ ] repeat suppressor

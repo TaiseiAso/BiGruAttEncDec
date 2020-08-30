@@ -67,15 +67,18 @@ def top_p_sampling_search(decoder, hs, h, glove, dict, device, p, temp):
     return res
 
 
-def mmi_antiLM_search(decoder, hs, h, glove, dict, device, lam):
+def mmi_antiLM_search(decoder, hs, h, glove, dict, device, lam, gam):
     res = []
     hs_mmi = torch.zeros_like(hs)
     h_mmi = torch.zeros_like(h)
     source_tensor = batch_to_tensor([['_GO']], glove, device)
-    for _ in range(MAX_TEST_LENGTH):
+    for i in range(MAX_TEST_LENGTH):
         out, h, _ = decoder(source_tensor, hs, h, None, device)
-        out_mmi, h_mmi, _ = decoder(source_tensor, hs_mmi, h_mmi, None, device)
-        idx = np.argmax(out - lam * out_mmi).item()
+        if gam <= 0 or i < gam:
+            out_mmi, h_mmi, _ = decoder(source_tensor, hs_mmi, h_mmi, None, device)
+            idx = np.argmax(out - lam * out_mmi).item()
+        else:
+            idx = np.argmax(out).item()
         token = dict['idx2word'][idx]
         if token == '_EOS': break
         res.append(token)

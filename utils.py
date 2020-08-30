@@ -110,3 +110,37 @@ def batch_to_id_tensor(batch, dict, device):
     for data in batch:
         batch_id_tensor.append([dict['word2idx'].get(word, 1) for word in data])
     return torch.LongTensor(batch_id_tensor).to(device)
+
+
+def load_knowledge_graph(path):
+    knowledge_graph = {}
+    with open(path, 'r', encoding='utf-8') as f:
+        json_line = json.loads(f.readline())
+        triples = json_line['csk_triples']
+        for triple in triples:
+            entities = triple.split(', ')
+            if entities[0] in knowledge_graph:
+                knowledge_graph[entities[0]].append(entities[2])
+            else:
+                knowledge_graph[entities[0]] = [entities[2]]
+            if entities[2] in knowledge_graph:
+                knowledge_graph[entities[2]].append(entities[0])
+            else:
+                knowledge_graph[entities[2]] = [entities[0]]
+    return knowledge_graph
+
+
+def get_near_entities_from_knowledge_graph(post, graph, n):
+    near_entities = []
+    entities = set()
+    for word in post:
+        if word in graph: entities.add(word)
+    near_entities.append(list(entities))
+    for _ in range(n):
+        bef_entities = entities
+        add_entities = set()
+        for entity in entities:
+            add_entities = add_entities.union(set(graph[entity]))
+        entities = entities.union(add_entities)
+        near_entities.append(entities.difference(bef_entities))
+    return near_entities
