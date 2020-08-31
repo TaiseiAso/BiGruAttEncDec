@@ -44,15 +44,18 @@
 - [x] beam search
 - [x] diverse beam search
 - [x] maximum mutual information
-- [ ] \+ with knowledge graph
+- [x] \+ with knowledge graph
 
 ### objective function
 - [x] softmax cross-entropy loss
+- [ ] inverse token frequency loss
+- [ ] inverse N-gram frequency loss
 - [ ] \+ with knowledge graph
 
 ### reranking method
-- [ ] beam score
+- [x] beam score
 - [ ] entity score
+- [ ] breakdown possibility
 
 ### automatic evaluation
 - [x] Length
@@ -64,11 +67,9 @@
 - [ ] METEOR
 - [x] Entity score
 
-### advance
-- [ ] repeat suppressor
-- [ ] inverse token frequency loss
-- [ ] inverse N-gram frequency loss
-- [ ] reranking by breakdown possibility
+### others
+- [x] length normalization
+- [x] repetitive suppression
 
 ## Reference
 ### Site
@@ -79,6 +80,7 @@
 - https://qiita.com/m__k/items/646044788c5f94eadc8d
 - https://takoroy-ai.hatenadiary.jp/entry/2018/07/02/224216
 - https://github.com/jojonki/arXivNotes/issues/159
+- https://stanford.edu/~shervine/l/ja/teaching/cs-230/cheatsheet-recurrent-neural-networks
 
 ### Paper
 - http://coai.cs.tsinghua.edu.cn/hml/media/files/2018_commonsense_ZhouHao_3_TYVQ7Iq.pdf

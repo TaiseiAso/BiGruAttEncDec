@@ -16,6 +16,8 @@ parser.add_argument('-m', '--mode', type=str, default="train", help="train or te
 parser.add_argument('-n', '--name', type=str, default="", help="experiment name")
 args = parser.parse_args()
 
+device_name = device = target_dict = glove_vectors = knowledge_graph = None
+
 if args.mode != 'eval':
     torch.backends.cudnn.benchmark = True
 
@@ -121,7 +123,28 @@ elif args.mode == 'test':
                             rep_sup=0.4, k=10, temp=0.4)
                 top_p_sampling_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
                             rep_sup=0.4, p=0.5, temp=0.4)
-                #greedy_kg_res = greedy_kg_search(decoder, hs, h, glove_vectors, target_dict, device, input, knowledge_graph, 2, 0.5)
+
+                greedy_kg_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, graph=knowledge_graph, post=input,
+                            post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                mmi_antiLM_kg_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, step=5, mmi_lambda=0.2, graph=knowledge_graph, post=input,
+                            post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                beam_kg_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, B=10, time_norm=2.0, parent_penalty=1.0, graph=knowledge_graph, post=input,
+                            post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                diverse_beam_kg_ress = diverse_beam_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, B=2, G=5, time_norm=2.0, parent_penalty=1.0, diverse_penalty=0.6, graph=knowledge_graph, post=input,
+                            post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                sampling_kg_res = sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, temp=0.4, graph=knowledge_graph, post=input,
+                            post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                top_k_sampling_kg_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, k=10, temp=0.4, graph=knowledge_graph, post=input,
+                            post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                top_p_sampling_kg_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, p=0.5, temp=0.4, graph=knowledge_graph, post=input,
+                            post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
 
                 f.write("greedy:" + ' '.join(greedy_res) + "\n")
                 f.write("mmi-antiLM:" + ' '.join(mmi_antiLM_res) + "\n")
@@ -130,7 +153,14 @@ elif args.mode == 'test':
                 f.write("sampling:" + ' '.join(sampling_res) + "\n")
                 f.write("top-k sampling:" + ' '.join(top_k_sampling_res) + "\n")
                 f.write("top-p sampling:" + ' '.join(top_p_sampling_res) + "\n")
-                #f.write("kg greedy:" + ' '.join(greedy_kg_res) + "\n")
+
+                f.write("greedy kg:" + ' '.join(greedy_kg_res) + "\n")
+                f.write("mmi-antiLM kg:" + ' '.join(mmi_antiLM_kg_res) + "\n")
+                f.write("beam kg:" + ' '.join(reranking(beam_kg_ress)) + "\n")
+                f.write("diverse beam kg:" + ' '.join(reranking(diverse_beam_kg_ress)) + "\n")
+                f.write("sampling kg:" + ' '.join(sampling_kg_res) + "\n")
+                f.write("top-k sampling kg:" + ' '.join(top_k_sampling_kg_res) + "\n")
+                f.write("top-p sampling kg:" + ' '.join(top_p_sampling_kg_res) + "\n")
                 f.write("\n")
 elif args.mode == 'eval':
     test_log_name = "./log/test" + args.name + ".txt"
@@ -144,7 +174,7 @@ elif args.mode == 'eval':
 
     posts = []
     answers = []
-    results = {}
+    results = {'human': []}
     isFirst = True
     with open(test_log_name, 'r', encoding='utf-8') as f:
         line = f.readline().strip()
@@ -153,8 +183,7 @@ elif args.mode == 'eval':
             posts.append(post.split())
             _, answer = f.readline().strip().split(':', 1)
             answers.append(answer.split())
-            if isFirst: results['human'] = [answers[-1]]
-            else: results['human'].append(answers[-1])
+            results['human'].append(answers[-1])
 
             line = f.readline().strip()
             while line != "":

@@ -5,15 +5,37 @@ import torch.nn.functional as F
 from utils import *
 
 
-def greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0):
+def repetitive_suppression(out, dict, res_rep_dict, rep_sup):
+    for tok, rep in res_rep_dict.items():
+        out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+
+
+def entity_enhancer(out, dict, near_entities, n, enh, ignore_n=-1):
+    for near, entities in enumerate(near_entities[1 + ignore_n:]):
+        for entity in entities:
+            if entity in dict['word2idx']:
+                out[dict['word2idx'][entity]] *= (n + 1 - near - ignore_n) ** enh
+
+
+def sentence_entity_enhancer(out, dict, sentence, graph, n, enh, ignore_n=-1):
+    if ignore_n < -1: ignore_n = -1
+    if n > ignore_n:
+        near_entities = get_near_entities_from_knowledge_graph(sentence, graph, n)
+        entity_enhancer(out, dict, near_entities, n, enh, ignore_n)
+
+
+def greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
+                  graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
+    post_near_entities = get_near_entities_from_knowledge_graph(post, graph, post_n)
     for _ in range(MAX_TEST_LENGTH):
         source_tensor = batch_to_tensor([[res[-1]]], glove, device)
         out, h, _ = decoder(source_tensor, hs, h, None, device)
         out = out[0, 0].tolist()
-        for tok, rep in res_rep_dict.items():
-            out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+        repetitive_suppression(out, dict, res_rep_dict, rep_sup)
+        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, ignore_n=post_ignore_n)
+        sentence_entity_enhancer(out, dict, res[1:], graph, res_n, res_enh, ignore_n=res_ignore_n)
         idx = np.argmax(out)
         token = dict['idx2word'][idx]
         if token == '_EOS': break
@@ -23,35 +45,18 @@ def greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0):
     return res[1:]
 
 
-def greedy_kg_search(decoder, hs, h, glove, dict, device, post, graph, kg_n, kg_lam):
-    if post:
-        near_entities = get_near_entities_from_knowledge_graph(post, graph, kg_n)
-    res = ['_GO']
-    for _ in range(MAX_TEST_LENGTH):
-        source_tensor = batch_to_tensor([[res[-1]]], glove, device)
-        out, h, _ = decoder(source_tensor, hs, h, None, device)
-        out = out[0, 0].tolist()
-        if post:
-            for near, entities in enumerate(near_entities):
-                for entity in entities:
-                    if entity in dict['word2idx']:
-                        out[dict['word2idx'][entity]] *= (kg_n + 1 - near) ** kg_lam
-        idx = np.argmax(out)
-        token = dict['idx2word'][idx]
-        if token == '_EOS': break
-        res.append(token)
-    return res[1:]
-
-
-def sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, temp=1.0):
+def sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, temp=1.0,
+                    graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
+    post_near_entities = get_near_entities_from_knowledge_graph(post, graph, post_n)
     for _ in range(MAX_TEST_LENGTH):
         source_tensor = batch_to_tensor([[res[-1]]], glove, device)
         out, h, _ = decoder(source_tensor, hs, h, None, device)
         out = out[0, 0]
-        for tok, rep in res_rep_dict.items():
-            out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+        repetitive_suppression(out, dict, res_rep_dict, rep_sup)
+        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, ignore_n=post_ignore_n)
+        sentence_entity_enhancer(out, dict, res[1:], graph, res_n, res_enh, ignore_n=res_ignore_n)
         out = F.softmax(out / temp, dim=0).tolist()
         idx = random.choices(range(len(out)), weights=out)[0]
         token = dict['idx2word'][idx]
@@ -62,15 +67,18 @@ def sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, temp=1.0):
     return res[1:]
 
 
-def top_k_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, k=1, temp=1.0):
+def top_k_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, k=1, temp=1.0,
+                          graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
+    post_near_entities = get_near_entities_from_knowledge_graph(post, graph, post_n)
     for _ in range(MAX_TEST_LENGTH):
         source_tensor = batch_to_tensor([[res[-1]]], glove, device)
         out, h, _ = decoder(source_tensor, hs, h, None, device)
         out = out[0, 0]
-        for tok, rep in res_rep_dict.items():
-            out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+        repetitive_suppression(out, dict, res_rep_dict, rep_sup)
+        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, ignore_n=post_ignore_n)
+        sentence_entity_enhancer(out, dict, res[1:], graph, res_n, res_enh, ignore_n=res_ignore_n)
         out = F.softmax(out / temp, dim=0)
         topv, topi = out.topk(k)
         idx = random.choices(topi.tolist(), weights=topv.tolist())[0]
@@ -82,15 +90,18 @@ def top_k_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, k=1,
     return res[1:]
 
 
-def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.0, temp=1.0):
+def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.0, temp=1.0,
+                          graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
+    post_near_entities = get_near_entities_from_knowledge_graph(post, graph, post_n)
     for _ in range(MAX_TEST_LENGTH):
         source_tensor = batch_to_tensor([[res[-1]]], glove, device)
         out, h, _ = decoder(source_tensor, hs, h, None, device)
         out = out[0, 0]
-        for tok, rep in res_rep_dict.items():
-            out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+        repetitive_suppression(out, dict, res_rep_dict, rep_sup)
+        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, ignore_n=post_ignore_n)
+        sentence_entity_enhancer(out, dict, res[1:], graph, res_n, res_enh, ignore_n=res_ignore_n)
         out = F.softmax(out / temp, dim=0)
         topi = np.argsort(out).tolist()[::-1]
         topv = [out[i] for i in topi]
@@ -108,9 +119,11 @@ def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.
     return res[1:]
 
 
-def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=-1, mmi_lambda=0.0):
+def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=-1, mmi_lambda=0.0,
+                      graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
+    post_near_entities = get_near_entities_from_knowledge_graph(post, graph, post_n)
     hs_mmi = torch.zeros_like(hs)
     h_mmi = torch.zeros_like(h)
     for i in range(MAX_TEST_LENGTH):
@@ -120,8 +133,9 @@ def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=-1,
             out_mmi, h_mmi, _ = decoder(source_tensor, hs_mmi, h_mmi, None, device)
             out -= mmi_lambda * out_mmi
         out = out[0, 0].tolist()
-        for tok, rep in res_rep_dict.items():
-            out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+        repetitive_suppression(out, dict, res_rep_dict, rep_sup)
+        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, ignore_n=post_ignore_n)
+        sentence_entity_enhancer(out, dict, res[1:], graph, res_n, res_enh, ignore_n=res_ignore_n)
         idx = np.argmax(out)
         token = dict['idx2word'][idx]
         if token == '_EOS': break
@@ -131,13 +145,18 @@ def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=-1,
     return res[1:]
 
 
-def beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=10, time_norm=1.0, parent_penalty=0.0):
+def beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=10, time_norm=1.0, parent_penalty=0.0,
+                graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     return diverse_beam_search(decoder, hs, h, glove, dict, device,
-                               rep_sup=rep_sup, B=B, G=1, time_norm=time_norm, parent_penalty=parent_penalty, diverse_penalty=0)
+                               rep_sup=rep_sup, B=B, G=1, time_norm=time_norm, parent_penalty=parent_penalty, diverse_penalty=0,
+                               graph=graph, post=post, post_n=post_n, post_enh=post_enh, post_ignore_n=post_ignore_n,
+                               res_n=res_n, res_enh=res_enh, res_ignore_n=res_ignore_n)
 
 
-def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=2, G=5, time_norm=1.0, parent_penalty=0.0, diverse_penalty=0.0):
+def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=2, G=5, time_norm=1.0, parent_penalty=0.0, diverse_penalty=0.0,
+                        graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     ress = []
+    post_near_entities = get_near_entities_from_knowledge_graph(post, graph, post_n)
     beam_sizes = [B for _ in range(G)]
     beams = [[{'res': ['_GO'], 'res_rep_dict': {}, 'score': 0, 'hidden': h, 'length': 1}] for _ in range(G)]
     for _ in range(MAX_TEST_LENGTH):
@@ -148,8 +167,9 @@ def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=2, G
                 source_tensor = batch_to_tensor([[beam['res'][-1]]], glove, device)
                 out, next_h, _ = decoder(source_tensor, hs, beam['hidden'], None, device)
                 out = out[0, 0]
-                for tok, rep in beam['res_rep_dict'].items():
-                    out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+                repetitive_suppression(out, dict, beam['res_rep_dict'], rep_sup)
+                entity_enhancer(out, dict, post_near_entities, post_n, post_enh, ignore_n=post_ignore_n)
+                sentence_entity_enhancer(out, dict, beam['res'][1:], graph, res_n, res_enh, ignore_n=res_ignore_n)
                 out = F.log_softmax(out, dim=0) + beam['score']
                 ranks = out / (beam['length'] ** time_norm)
                 out = out.tolist()

@@ -131,6 +131,7 @@ def load_knowledge_graph(path):
 
 
 def get_near_entities_from_knowledge_graph(post, graph, n):
+    if not (graph and post and n >= 0): return []
     near_entities = []
     entities = set()
     for word in post:
