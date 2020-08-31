@@ -1,57 +1,97 @@
 # coding: utf-8
 
+import copy
 import torch.nn.functional as F
 from utils import *
 
 
-def greedy_search(decoder, hs, h, glove, dict, device):
-    res = []
-    source_tensor = batch_to_tensor([['_GO']], glove, device)
+def greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0):
+    res = ['_GO']
+    res_rep_dict = {}
     for _ in range(MAX_TEST_LENGTH):
+        source_tensor = batch_to_tensor([[res[-1]]], glove, device)
         out, h, _ = decoder(source_tensor, hs, h, None, device)
-        idx = np.argmax(out).item()
+        out = out[0, 0].tolist()
+        for tok, rep in res_rep_dict.items():
+            out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+        idx = np.argmax(out)
+        token = dict['idx2word'][idx]
+        if token == '_EOS': break
+        if token in res_rep_dict: res_rep_dict[token] += 1
+        else: res_rep_dict[token] = 1
+        res.append(token)
+    return res[1:]
+
+
+def greedy_kg_search(decoder, hs, h, glove, dict, device, post, graph, kg_n, kg_lam):
+    if post:
+        near_entities = get_near_entities_from_knowledge_graph(post, graph, kg_n)
+    res = ['_GO']
+    for _ in range(MAX_TEST_LENGTH):
+        source_tensor = batch_to_tensor([[res[-1]]], glove, device)
+        out, h, _ = decoder(source_tensor, hs, h, None, device)
+        out = out[0, 0].tolist()
+        if post:
+            for near, entities in enumerate(near_entities):
+                for entity in entities:
+                    if entity in dict['word2idx']:
+                        out[dict['word2idx'][entity]] *= (kg_n + 1 - near) ** kg_lam
+        idx = np.argmax(out)
         token = dict['idx2word'][idx]
         if token == '_EOS': break
         res.append(token)
-        source_tensor = batch_to_tensor([[token]], glove, device)
-    return res
+    return res[1:]
 
 
-def sampling_search(decoder, hs, h, glove, dict, device, temp):
-    res = []
-    source_tensor = batch_to_tensor([['_GO']], glove, device)
+def sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, temp=1.0):
+    res = ['_GO']
+    res_rep_dict = {}
     for _ in range(MAX_TEST_LENGTH):
+        source_tensor = batch_to_tensor([[res[-1]]], glove, device)
         out, h, _ = decoder(source_tensor, hs, h, None, device)
-        out = F.softmax(out[0, 0] / temp, dim=0).tolist()
+        out = out[0, 0]
+        for tok, rep in res_rep_dict.items():
+            out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+        out = F.softmax(out / temp, dim=0).tolist()
         idx = random.choices(range(len(out)), weights=out)[0]
         token = dict['idx2word'][idx]
         if token == '_EOS': break
+        if token in res_rep_dict: res_rep_dict[token] += 1
+        else: res_rep_dict[token] = 1
         res.append(token)
-        source_tensor = batch_to_tensor([[token]], glove, device)
-    return res
+    return res[1:]
 
 
-def top_k_sampling_search(decoder, hs, h, glove, dict, device, k, temp):
-    res = []
-    source_tensor = batch_to_tensor([['_GO']], glove, device)
+def top_k_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, k=1, temp=1.0):
+    res = ['_GO']
+    res_rep_dict = {}
     for _ in range(MAX_TEST_LENGTH):
+        source_tensor = batch_to_tensor([[res[-1]]], glove, device)
         out, h, _ = decoder(source_tensor, hs, h, None, device)
-        out = F.softmax(out[0, 0] / temp, dim=0)
+        out = out[0, 0]
+        for tok, rep in res_rep_dict.items():
+            out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+        out = F.softmax(out / temp, dim=0)
         topv, topi = out.topk(k)
         idx = random.choices(topi.tolist(), weights=topv.tolist())[0]
         token = dict['idx2word'][idx]
         if token == '_EOS': break
+        if token in res_rep_dict: res_rep_dict[token] += 1
+        else: res_rep_dict[token] = 1
         res.append(token)
-        source_tensor = batch_to_tensor([[token]], glove, device)
-    return res
+    return res[1:]
 
 
-def top_p_sampling_search(decoder, hs, h, glove, dict, device, p, temp):
-    res = []
-    source_tensor = batch_to_tensor([['_GO']], glove, device)
+def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.0, temp=1.0):
+    res = ['_GO']
+    res_rep_dict = {}
     for _ in range(MAX_TEST_LENGTH):
+        source_tensor = batch_to_tensor([[res[-1]]], glove, device)
         out, h, _ = decoder(source_tensor, hs, h, None, device)
-        out = F.softmax(out[0, 0] / temp, dim=0)
+        out = out[0, 0]
+        for tok, rep in res_rep_dict.items():
+            out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+        out = F.softmax(out / temp, dim=0)
         topi = np.argsort(out).tolist()[::-1]
         topv = [out[i] for i in topi]
         sumi, sumv = 0, 0
@@ -62,64 +102,88 @@ def top_p_sampling_search(decoder, hs, h, glove, dict, device, p, temp):
         idx = random.choices(topi[:sumi], weights=topv[:sumi])[0]
         token = dict['idx2word'][idx]
         if token == '_EOS': break
+        if token in res_rep_dict: res_rep_dict[token] += 1
+        else: res_rep_dict[token] = 1
         res.append(token)
-        source_tensor = batch_to_tensor([[token]], glove, device)
-    return res
+    return res[1:]
 
 
-def mmi_antiLM_search(decoder, hs, h, glove, dict, device, lam, gam):
-    res = []
+def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=-1, mmi_lambda=0.0):
+    res = ['_GO']
+    res_rep_dict = {}
     hs_mmi = torch.zeros_like(hs)
     h_mmi = torch.zeros_like(h)
-    source_tensor = batch_to_tensor([['_GO']], glove, device)
     for i in range(MAX_TEST_LENGTH):
+        source_tensor = batch_to_tensor([[res[-1]]], glove, device)
         out, h, _ = decoder(source_tensor, hs, h, None, device)
-        if gam <= 0 or i < gam:
+        if step <= 0 or i < step:
             out_mmi, h_mmi, _ = decoder(source_tensor, hs_mmi, h_mmi, None, device)
-            idx = np.argmax(out - lam * out_mmi).item()
-        else:
-            idx = np.argmax(out).item()
+            out -= mmi_lambda * out_mmi
+        out = out[0, 0].tolist()
+        for tok, rep in res_rep_dict.items():
+            out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+        idx = np.argmax(out)
         token = dict['idx2word'][idx]
         if token == '_EOS': break
+        if token in res_rep_dict: res_rep_dict[token] += 1
+        else: res_rep_dict[token] = 1
         res.append(token)
-        source_tensor = batch_to_tensor([[token]], glove, device)
-    return res
+    return res[1:]
 
 
-def beam_search(decoder, hs, h, glove, dict, device, B, a, gam):
-    return diverse_beam_search(decoder, hs, h, glove, dict, device, B, 1, a, gam, 0)
+def beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=10, time_norm=1.0, parent_penalty=0.0):
+    return diverse_beam_search(decoder, hs, h, glove, dict, device,
+                               rep_sup=rep_sup, B=B, G=1, time_norm=time_norm, parent_penalty=parent_penalty, diverse_penalty=0)
 
 
-def diverse_beam_search(decoder, hs, h, glove, dict, device, B, G, a, gam, lam):
+def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=2, G=5, time_norm=1.0, parent_penalty=0.0, diverse_penalty=0.0):
     ress = []
-    beam_sizes = [B] * G
-    beams = [[{'res': ['_GO'], 'score': 0, 'hidden': h}] for _ in range(G)]
+    beam_sizes = [B for _ in range(G)]
+    beams = [[{'res': ['_GO'], 'res_rep_dict': {}, 'score': 0, 'hidden': h, 'length': 1}] for _ in range(G)]
     for _ in range(MAX_TEST_LENGTH):
         for g in range(G):
             if beam_sizes[g] == 0: continue
             next_beams = []
             for beam in beams[g]:
-                source_tensor = batch_to_tensor([beam['res'][-1]], glove, device)
+                source_tensor = batch_to_tensor([[beam['res'][-1]]], glove, device)
                 out, next_h, _ = decoder(source_tensor, hs, beam['hidden'], None, device)
-                out = (F.log_softmax(out[0, 0], dim=0) + beam['score']).tolist()
-                ranks = [o / (len(beam['res']) ** a) for o in out]
+                out = out[0, 0]
+                for tok, rep in beam['res_rep_dict'].items():
+                    out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
+                out = F.log_softmax(out, dim=0) + beam['score']
+                ranks = out / (beam['length'] ** time_norm)
+                out = out.tolist()
                 for h in range(g):
                     if beam_sizes[h] == 0: continue
                     for beam_ in beams[h]:
                         idx = dict['word2idx'][beam_['res'][-1]]
-                        ranks[idx] -= lam
+                        ranks[idx] -= diverse_penalty
                 arg = np.argsort(ranks).tolist()[::-1][:beam_sizes[g]]
-                for i, idx in enumerate(arg):
-                    next_beams.append({'res': beam['res']+[dict['idx2word'][idx]], 'score': out[idx], 'hidden': next_h, 'penalty': i * gam})
+                for child, idx in enumerate(arg):
+                    token = dict['idx2word'][idx]
+                    next_res_rep_dict = copy.copy(beam['res_rep_dict'])
+                    if token in next_res_rep_dict:
+                        next_res_rep_dict[token] += 1
+                    else:
+                        next_res_rep_dict[token] = 1
+                    next_beams.append({
+                        'res': beam['res']+[token], 'res_rep_dict': next_res_rep_dict, 'score': out[idx],
+                        'hidden': next_h, 'length': beam['length']+1, 'penalty': child * parent_penalty
+                    })
             next_beams = sorted(next_beams, key=lambda x: x['score']-x['penalty'], reverse=True)[:beam_sizes[g]]
             beams[g] = []
             for next_beam in next_beams:
                 if next_beam['res'][-1] == '_EOS':
                     beam_sizes[g] -= 1
-                    ress.append({'res': next_beam['res'][1:-1], 'score': next_beam['score'] / ((len(next_beam['res'])-1) ** a)})
+                    ress.append({'res': next_beam['res'][1:-1], 'score': next_beam['score']/((next_beam['length']-1) ** time_norm)})
                 else:
                     del next_beam['penalty']
                     beams[g].append(next_beam)
         if len(ress) == B*G: break
     ress = sorted(ress, key=lambda x: x['score'], reverse=True)
-    return ress[0]['res']
+    return ress
+
+
+def reranking(ress, graph=None):
+    if not graph: return ress[0]['res']
+    return ress

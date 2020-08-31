@@ -9,7 +9,6 @@ import torch.optim as optim
 import os
 from model import *
 from decode import *
-from param import *
 from eval import *
 
 parser = argparse.ArgumentParser()
@@ -108,21 +107,30 @@ elif args.mode == 'test':
                 f.write("post:" + ' '.join(input) + "\n")
                 f.write("answer:" + ' '.join(output) + "\n")
 
-                greedy_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device)
-                mmi_antiLM_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device, 0.2, 5)
-                beam_res = beam_search(decoder, hs, h, glove_vectors, target_dict, device, 4, 2, 2)
-                diverse_beam_res = diverse_beam_search(decoder, hs, h, glove_vectors, target_dict, device, 2, 2, 2, 2, 1)
-                sampling_res = sampling_search(decoder, hs, h, glove_vectors, target_dict, device, 0.4)
-                top_k_sampling_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device, 10, 0.4)
-                top_p_sampling_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device, 0.5, 0.4)
+                greedy_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4)
+                mmi_antiLM_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, step=5, mmi_lambda=0.2)
+                beam_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, B=10, time_norm=2.0, parent_penalty=1.0)
+                diverse_beam_ress = diverse_beam_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, B=2, G=5, time_norm=2.0, parent_penalty=1.0, diverse_penalty=0.6)
+                sampling_res = sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, temp=0.4)
+                top_k_sampling_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, k=10, temp=0.4)
+                top_p_sampling_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                            rep_sup=0.4, p=0.5, temp=0.4)
+                #greedy_kg_res = greedy_kg_search(decoder, hs, h, glove_vectors, target_dict, device, input, knowledge_graph, 2, 0.5)
 
                 f.write("greedy:" + ' '.join(greedy_res) + "\n")
                 f.write("mmi-antiLM:" + ' '.join(mmi_antiLM_res) + "\n")
-                f.write("beam:" + ' '.join(beam_res) + "\n")
-                f.write("diverse beam:" + ' '.join(diverse_beam_res) + "\n")
+                f.write("beam:" + ' '.join(reranking(beam_ress)) + "\n")
+                f.write("diverse beam:" + ' '.join(reranking(diverse_beam_ress)) + "\n")
                 f.write("sampling:" + ' '.join(sampling_res) + "\n")
                 f.write("top-k sampling:" + ' '.join(top_k_sampling_res) + "\n")
                 f.write("top-p sampling:" + ' '.join(top_p_sampling_res) + "\n")
+                #f.write("kg greedy:" + ' '.join(greedy_kg_res) + "\n")
                 f.write("\n")
 elif args.mode == 'eval':
     test_log_name = "./log/test" + args.name + ".txt"
@@ -157,7 +165,7 @@ elif args.mode == 'eval':
             line = f.readline().strip()
             isFirst = False
 
-    max_method_len = max([len(method) for method in results.keys()] + [8])
+    max_method_len = max([len(method) for method in results.keys()] + [8]) + 1
     with open(eval_log_name, 'a', encoding='utf-8') as f:
         f.write("(Method)" + " " * (max_method_len - 8) + ": ")
         f.write("(Length) (DIST-1) (DIST-2) (Repeat) (BLEU-1) (BLEU-2) (Ent.-0) (Ent.-1) (Ent.-2)\n")
