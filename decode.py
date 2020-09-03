@@ -98,7 +98,7 @@ def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.
     for _ in range(MAX_TEST_LENGTH):
         source_tensor = batch_to_tensor([[res[-1]]], glove, device)
         out, h, _ = decoder(source_tensor, hs, h, None, device)
-        out = out[0, 0]
+        out = out[0, 0].cpu()
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
         entity_enhancer(out, dict, post_near_entities, post_n, post_enh, ignore_n=post_ignore_n)
         sentence_entity_enhancer(out, dict, res[1:], graph, res_n, res_enh, ignore_n=res_ignore_n)
@@ -119,7 +119,7 @@ def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.
     return res[1:]
 
 
-def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=-1, mmi_lambda=0.0,
+def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=0, mmi_lambda=0.0,
                       graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
@@ -145,7 +145,7 @@ def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=-1,
     return res[1:]
 
 
-def beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=10, time_norm=1.0, parent_penalty=0.0,
+def beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=1, time_norm=1.0, parent_penalty=0.0,
                 graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     return diverse_beam_search(decoder, hs, h, glove, dict, device,
                                rep_sup=rep_sup, B=B, G=1, time_norm=time_norm, parent_penalty=parent_penalty, diverse_penalty=0,
@@ -153,7 +153,7 @@ def beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=10, time_nor
                                res_n=res_n, res_enh=res_enh, res_ignore_n=res_ignore_n)
 
 
-def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=2, G=5, time_norm=1.0, parent_penalty=0.0, diverse_penalty=0.0,
+def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=1, G=1, time_norm=1.0, parent_penalty=0.0, diverse_penalty=0.0,
                         graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     ress = []
     post_near_entities = get_near_entities_from_knowledge_graph(post, graph, post_n)
@@ -166,7 +166,7 @@ def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=2, G
             for beam in beams[g]:
                 source_tensor = batch_to_tensor([[beam['res'][-1]]], glove, device)
                 out, next_h, _ = decoder(source_tensor, hs, beam['hidden'], None, device)
-                out = out[0, 0]
+                out = out[0, 0].cpu()
                 repetitive_suppression(out, dict, beam['res_rep_dict'], rep_sup)
                 entity_enhancer(out, dict, post_near_entities, post_n, post_enh, ignore_n=post_ignore_n)
                 sentence_entity_enhancer(out, dict, beam['res'][1:], graph, res_n, res_enh, ignore_n=res_ignore_n)

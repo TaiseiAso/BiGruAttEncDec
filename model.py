@@ -8,9 +8,13 @@ import torch.nn.functional as F
 class Encoder(nn.Module):
     def __init__(self, embedding_dim, hidden_dim, layer, dropout=0):
         super(Encoder, self).__init__()
-        self.gru = nn.GRU(embedding_dim, hidden_dim, layer, batch_first=True, dropout=dropout, bidirectional=True)
+        self.linear = nn.Linear(embedding_dim, hidden_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.gru = nn.GRU(hidden_dim, hidden_dim, layer, batch_first=True, dropout=dropout, bidirectional=True)
 
     def forward(self, embeddings, lengths):
+        embeddings = self.linear(embeddings)
+        embeddings = self.dropout(embeddings)
         if lengths:
             embeddings = nn.utils.rnn.pack_padded_sequence(embeddings, lengths=lengths, batch_first=True)
         hs, h = self.gru(embeddings)
@@ -33,11 +37,15 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, vocab_size, embedding_dim, hidden_dim, layer, dropout=0):
         super(Decoder, self).__init__()
-        self.gru = nn.GRU(embedding_dim, hidden_dim, layer, batch_first=True, dropout=dropout)
+        self.linear = nn.Linear(embedding_dim, hidden_dim)
+        self.dropout = nn.Dropout(dropout)
+        self.gru = nn.GRU(hidden_dim, hidden_dim, layer, batch_first=True, dropout=dropout)
         self.concat = nn.Linear(hidden_dim * 2, hidden_dim)
         self.hidden2linear = nn.Linear(hidden_dim, vocab_size)
 
     def forward(self, embeddings, hs, h, mask, device):
+        embeddings = self.linear(embeddings)
+        embeddings = self.dropout(embeddings)
         output, h = self.gru(embeddings, h)
         t_output = torch.transpose(output, 1, 2)
         s = torch.bmm(hs, t_output)

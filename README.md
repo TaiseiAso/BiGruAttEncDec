@@ -60,18 +60,18 @@
 ### automatic evaluation
 - [x] Length
 - [x] BLEU
-- [ ] NIST
-- [ ] ROUGE
+- [x] NIST
+- [x] ROUGE
 - [x] DIST
 - [x] Repeat
-- [ ] METEOR
+- [x] METEOR
 - [x] Entity score
 
 ### others
 - [x] length normalization
 - [x] repetitive suppression
 
-## Reference
+## Reference (random order)
 ### Site
 - http://coai.cs.tsinghua.edu.cn/hml/dataset/#commonsense
 - https://conceptnet.io/
@@ -81,6 +81,10 @@
 - https://takoroy-ai.hatenadiary.jp/entry/2018/07/02/224216
 - https://github.com/jojonki/arXivNotes/issues/159
 - https://stanford.edu/~shervine/l/ja/teaching/cs-230/cheatsheet-recurrent-neural-networks
+- https://ksksksks2.hatenadiary.jp/entry/20191202/1575212640
+- http://unicorn.ike.tottori-u.ac.jp/2010/s072046/paper/graduation-thesis/node32.html
+- https://www.nltk.org/api/nltk.translate.html
+- http://unicorn.ike.tottori-u.ac.jp/2012/s092013/paper/graduation-thesis/node31.html
 
 ### Paper
 - http://coai.cs.tsinghua.edu.cn/hml/media/files/2018_commonsense_ZhouHao_3_TYVQ7Iq.pdf
@@ -91,3 +95,4 @@
 - https://www.anlp.jp/proceedings/annual_meeting/2019/pdf_dir/P3-34.pdf
 - https://arxiv.org/pdf/1904.09751.pdf
 - https://ahcweb01.naist.jp/papers/conference/2019/201906_SIGNL_sara-as/201906_SIGNL_sara-as.paper.pdf
+- https://www.jstage.jst.go.jp/article/jnlp/21/3/21_421/_pdf
