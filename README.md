@@ -3,7 +3,7 @@
 ## Goal
 - generic and easy method using knowledge graph
 - improve information, diversity, appropriateness
-- reform decoding method (and objective function)
+- reform decoding method and objective function
 
 ## Dataset
 - use dataset for CCM
@@ -14,6 +14,7 @@
 - commonsense is ConceptNet
 
 ## Environment
+- Windows10 (coding and run), Ubuntu18.04 (run)
 - python 3.6.8
 - pytorch 1.1.0
 - CUDA 10.1
@@ -26,7 +27,9 @@
 5. $ python main.py
 6. stop learning with Ctrl+C
 7. $ python main.py -m test
-8. $ python main.py -m eval
+8. $ pip install rouge (for ROUGE eval)
+9. $ nltk.download('wordnet') (for METEOR eval)
+10. $ python main.py -m eval
 
 ## Implement
 ### model
@@ -48,8 +51,8 @@
 
 ### objective function
 - [x] softmax cross-entropy loss
-- [ ] inverse token frequency loss
-- [ ] inverse N-gram frequency loss
+- [x] inverse token frequency loss
+- [x] inverse N-gram frequency loss
 - [ ] \+ with knowledge graph
 
 ### reranking method
@@ -85,6 +88,8 @@
 - http://unicorn.ike.tottori-u.ac.jp/2010/s072046/paper/graduation-thesis/node32.html
 - https://www.nltk.org/api/nltk.translate.html
 - http://unicorn.ike.tottori-u.ac.jp/2012/s092013/paper/graduation-thesis/node31.html
+- http://yagami12.hatenablog.com/entry/2017/12/30/175113
+- https://medium.com/@aiii/pytorch-e64c248ab428
 
 ### Paper
 - http://coai.cs.tsinghua.edu.cn/hml/media/files/2018_commonsense_ZhouHao_3_TYVQ7Iq.pdf

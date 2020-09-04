@@ -3,14 +3,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from param import *
 
 
 class Encoder(nn.Module):
-    def __init__(self, embedding_dim, hidden_dim, layer, dropout=0):
+    def __init__(self):
         super(Encoder, self).__init__()
-        self.linear = nn.Linear(embedding_dim, hidden_dim)
-        self.dropout = nn.Dropout(dropout)
-        self.gru = nn.GRU(hidden_dim, hidden_dim, layer, batch_first=True, dropout=dropout, bidirectional=True)
+        self.linear = nn.Linear(GLOVE_SIZE, HIDDEN_SIZE)
+        self.dropout = nn.Dropout(DROPOUT)
+        self.gru = nn.GRU(HIDDEN_SIZE, HIDDEN_SIZE, LAYER, batch_first=True, dropout=DROPOUT, bidirectional=True)
 
     def forward(self, embeddings, lengths):
         embeddings = self.linear(embeddings)
@@ -35,13 +36,13 @@ class Encoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim, layer, dropout=0):
+    def __init__(self, vocab_size):
         super(Decoder, self).__init__()
-        self.linear = nn.Linear(embedding_dim, hidden_dim)
-        self.dropout = nn.Dropout(dropout)
-        self.gru = nn.GRU(hidden_dim, hidden_dim, layer, batch_first=True, dropout=dropout)
-        self.concat = nn.Linear(hidden_dim * 2, hidden_dim)
-        self.hidden2linear = nn.Linear(hidden_dim, vocab_size)
+        self.linear = nn.Linear(GLOVE_SIZE, HIDDEN_SIZE*2)
+        self.dropout = nn.Dropout(DROPOUT)
+        self.gru = nn.GRU(HIDDEN_SIZE*2, HIDDEN_SIZE*2, LAYER, batch_first=True, dropout=DROPOUT)
+        self.concat = nn.Linear(HIDDEN_SIZE*4, HIDDEN_SIZE*2)
+        self.hidden2linear = nn.Linear(HIDDEN_SIZE*2, vocab_size)
 
     def forward(self, embeddings, hs, h, mask, device):
         embeddings = self.linear(embeddings)

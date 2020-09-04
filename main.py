@@ -4,12 +4,12 @@ import warnings
 warnings.simplefilter('ignore')
 
 import argparse
-import math
 import torch.optim as optim
 import os
 from model import *
 from decode import *
 from eval import *
+from object import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--mode', type=str, default="train", help="train or test or eval")
@@ -20,31 +20,32 @@ args = parser.parse_args()
 
 device_name = device = target_dict = glove_vectors = knowledge_graph = None
 
+if args.mode != 'train' or True:
+    knowledge_graph = load_knowledge_graph("./data/resource.txt")
+
 if args.mode != 'eval':
     torch.backends.cudnn.benchmark = True
 
     device_name = 'cuda:'+str(CUDA) if torch.cuda.is_available() else 'cpu'
     device = torch.device(device_name)
 
-    target_dict = create_dictionary("./data/resource.txt", MAX_VOCAB_SIZE)
+    target_dict = create_dictionary("./data/resource.txt")
     glove_vectors = load_glove("./data/glove.840B.300d.txt", target_dict)
-
-if args.mode != 'train':
-    knowledge_graph = load_knowledge_graph("./data/resource.txt")
 
 if args.mode == 'train':
     train_log_name = "./log/train" + args.model_name + ".txt"
     if os.path.exists(train_log_name):
         os.remove(train_log_name)
 
-    dialog_buckets = create_dialog_buckets(load_dialog_corpus("./data/trainset.txt", MAX_DIALOG_CORPUS_SIZE), BUCKET_SIZE)
+    dialog_corpus = load_dialog_corpus("./data/trainset.txt", MAX_DIALOG_CORPUS_SIZE)
+    dialog_buckets = create_dialog_buckets(dialog_corpus)
 
-    encoder = Encoder(GLOVE_SIZE, HIDDEN_SIZE, LAYER, DROPOUT).to(device)
-    decoder = Decoder(target_dict['nword'], GLOVE_SIZE, HIDDEN_SIZE * 2, LAYER, DROPOUT).to(device)
+    encoder = Encoder().to(device)
+    decoder = Decoder(target_dict['nword']).to(device)
     encoder.train()
     decoder.train()
 
-    criterion = nn.NLLLoss(ignore_index=0)
+    criterion = nn.NLLLoss()
 
     encoder_optimizer = optim.Adam(encoder.parameters(), lr=LEARNING_RATE)
     decoder_optimizer = optim.Adam(decoder.parameters(), lr=LEARNING_RATE)
@@ -54,7 +55,7 @@ if args.mode == 'train':
             epoch_loss = 0
             dialog_batchs = create_dialog_batchs(dialog_buckets)
 
-            for input_batch_length, output_batch_length, input_batch, output_batch in dialog_batchs:
+            for input_batch_length, output_batch_length, input_batch, output_batch, weights_batch in dialog_batchs:
                 encoder_optimizer.zero_grad()
                 decoder_optimizer.zero_grad()
 
@@ -69,7 +70,14 @@ if args.mode == 'train':
                 decoder_output, _, attention_weight = decoder(output_source_batch_tensor, hs, h, input_batch_length, device)
                 decoder_output = F.log_softmax(decoder_output, dim=2)
                 for i in range(decoder_output.size()[1]):
-                    loss += criterion(decoder_output[:, i, :], output_target_batch_tensor[:, i])
+                    batch_loss = batch_size = 0
+                    for j in range(decoder_output.size()[0]):
+                        if output_target_batch_tensor[j, i] == 0: continue
+                        batch_loss += \
+                            weights_batch[j][i] \
+                            * criterion(decoder_output[j, i, :].unsqueeze(0), output_target_batch_tensor[j, i].unsqueeze(0))
+                        batch_size += 1
+                    if batch_size > 0: loss += batch_loss / batch_size
                 loss.backward()
 
                 epoch_loss += loss.item()
@@ -78,8 +86,7 @@ if args.mode == 'train':
                 decoder_optimizer.step()
 
             epoch_loss /= len(dialog_batchs)
-            perplexity = math.exp(epoch_loss)
-            print_str = "Epoch %d: SCE(%.4f), PER(%.4f)" % (epoch, epoch_loss, perplexity)
+            print_str = "Epoch %d: SCE(%.4f)" % (epoch, epoch_loss)
             print(print_str)
             with open(train_log_name, 'a', encoding='utf-8') as f:
                 f.write(print_str + "\n")
@@ -95,8 +102,8 @@ elif args.mode == 'test':
 
     dialog_corpus = load_dialog_corpus("./data/testset.txt", MAX_TEST_DIALOG_CORPUS_SIZE)
 
-    encoder = Encoder(GLOVE_SIZE, HIDDEN_SIZE, LAYER, 0).to(device)
-    decoder = Decoder(target_dict['nword'], GLOVE_SIZE, HIDDEN_SIZE * 2, LAYER, 0).to(device)
+    encoder = Encoder().to(device)
+    decoder = Decoder(target_dict['nword']).to(device)
     encoder.load("./model/encoder" + args.model_name + ".pth", device_name)
     decoder.load("./model/decoder" + args.model_name + ".pth", device_name)
     encoder.eval()

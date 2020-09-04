@@ -3,8 +3,10 @@
 import torch
 import json
 import random
+import copy
 import numpy as np
 from param import *
+from object import *
 
 
 def load_dialog_corpus(path, max_size=-1):
@@ -31,7 +33,7 @@ def load_glove(path, dict):
     return vectors
 
 
-def create_dictionary(path, max_size=-1):
+def create_dictionary(path):
     word2idx = {'_PAD': 0, '_UNK': 1, '_GO': 2, '_EOS': 3}
     idx2word = {0: '_PAD', 1: '_UNK', 2: '_GO', 3: '_EOS'}
     nword = 4
@@ -40,7 +42,7 @@ def create_dictionary(path, max_size=-1):
         vocab_dict = json_line['vocab_dict']
         vocab_dict_sorted = sorted(vocab_dict.items(), key=lambda x: x[1], reverse=True)
         vocab = [tuple[0] for tuple in vocab_dict_sorted]
-        if max_size >= 0: vocab = vocab[:max_size]
+        if MAX_VOCAB_SIZE >= 0: vocab = vocab[:MAX_VOCAB_SIZE]
         for idx, word in enumerate(vocab):
             word2idx[word] = nword
             idx2word[nword] = word
@@ -48,17 +50,19 @@ def create_dictionary(path, max_size=-1):
     return {'word2idx': word2idx, 'idx2word': idx2word, 'nword': nword}
 
 
-def create_dialog_buckets(corpus, bucket_size):
-    bucket_cnt = len(bucket_size)
+def create_dialog_buckets(corpus):
+    ngram2freq = get_ngram_frequency(corpus)
+    bucket_cnt = len(BUCKET_SIZE)
     buckets = [[] for _ in range(bucket_cnt)]
     for dialog in corpus:
         source_len = len(dialog[0])
         target_len = len(dialog[1])
         for bucket_id in range(bucket_cnt):
-            if source_len <= bucket_size[bucket_id][0] and target_len < bucket_size[bucket_id][1]:
+            if source_len <= BUCKET_SIZE[bucket_id][0] and target_len < BUCKET_SIZE[bucket_id][1]:
+                weights = get_INF_weights(dialog[1], ngram2freq)
                 dialog[1].insert(0, '_GO')
                 dialog[1].append('_EOS')
-                buckets[bucket_id].append(dialog)
+                buckets[bucket_id].append([dialog[0], dialog[1], weights])
                 break
     return [bucket for bucket in buckets if bucket != []]
 
@@ -69,25 +73,28 @@ def create_dialog_batchs(buckets):
         random.shuffle(bucket)
         bucket_size = len(bucket)
         for i in range(0, bucket_size, BATCH_SIZE):
-            input_batch_length, output_batch_length, input_batch, output_batch = [], [], [], []
-            for input, output in bucket[i : min(i+BATCH_SIZE, bucket_size)]:
-                input_batch_length.append(len(input))
-                output_batch_length.append(len(output))
-                input_batch.append(input)
-                output_batch.append(output)
+            input_batch_length, output_batch_length, input_batch, output_batch, weights_batch = [], [], [], [], []
+            for input, output, weights in bucket[i : min(i+BATCH_SIZE, bucket_size)]:
+                input_, output_ = copy.copy(input), copy.copy(output)
+                input_batch_length.append(len(input_))
+                output_batch_length.append(len(output_))
+                input_batch.append(input_)
+                output_batch.append(output_)
+                weights_batch.append(weights)
 
             arg = np.argsort(input_batch_length)[::-1]
             input_batch_length = [input_batch_length[idx] for idx in arg]
             output_batch_length = [output_batch_length[idx] for idx in arg]
             input_batch = [input_batch[idx] for idx in arg]
             output_batch = [output_batch[idx] for idx in arg]
+            weights_batch = [weights_batch[idx] for idx in arg]
 
             max_input_batch_length = max(input_batch_length)
             max_output_batch_length = max(output_batch_length)
             for j in range(len(input_batch_length)):
                 input_batch[j].extend(['_PAD'] * (max_input_batch_length - input_batch_length[j]))
                 output_batch[j].extend(['_PAD'] * (max_output_batch_length - output_batch_length[j]))
-            batchs.append([input_batch_length, output_batch_length, input_batch, output_batch])
+            batchs.append([input_batch_length, output_batch_length, input_batch, output_batch, weights_batch])
     random.shuffle(batchs)
     return batchs
 
@@ -136,7 +143,7 @@ def get_near_entities_from_knowledge_graph(post, graph, n):
     entities = set()
     for word in post:
         if word in graph: entities.add(word)
-    near_entities.append(list(entities))
+    near_entities.append(entities)
     for _ in range(n):
         bef_entities = entities
         add_entities = set()
@@ -145,3 +152,16 @@ def get_near_entities_from_knowledge_graph(post, graph, n):
         entities = entities.union(add_entities)
         near_entities.append(entities.difference(bef_entities))
     return near_entities
+
+
+def get_ngram_frequency(corpus):
+    if INF_N <= 0: return None
+    ngram2freq = {}
+    top = ['_NORM']*(INF_N-2) + ['_GO']*min(1, INF_N-1)
+    for _, response in corpus:
+        response_ = top + response + ['_EOS']
+        for i in range(0, len(response_)-INF_N+1):
+            ngram = ' '.join(response_[i: i+INF_N])
+            if ngram in ngram2freq: ngram2freq[ngram] += 1
+            else: ngram2freq[ngram] = 1
+    return ngram2freq
