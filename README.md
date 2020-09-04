@@ -1,5 +1,7 @@
 # Attention Encoder-Decoder Dialog Model with GRU
 
+<img src="img/model.jpg" width="400"/>
+
 ## Goal
 - generic and easy method using knowledge graph
 - improve information, diversity, appropriateness
