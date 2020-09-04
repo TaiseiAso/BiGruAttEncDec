@@ -123,9 +123,9 @@ elif args.mode == 'test':
                 mmi_antiLM_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device,
                             rep_sup=0.4, step=5, mmi_lambda=0.2)
                 beam_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device,
-                            rep_sup=0.4, B=10, time_norm=2.0, parent_penalty=1.0)
+                            rep_sup=0.4, B=10, length_norm=2.0, sibling_penalty=1.0)
                 diverse_beam_ress = diverse_beam_search(decoder, hs, h, glove_vectors, target_dict, device,
-                            rep_sup=0.4, B=2, G=5, time_norm=2.0, parent_penalty=1.0, diverse_penalty=0.6)
+                            rep_sup=0.4, B=2, G=5, length_norm=2.0, sibling_penalty=1.0, diversity_strength=0.6)
                 sampling_res = sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
                             rep_sup=0.4, temp=0.4)
                 top_k_sampling_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
@@ -140,10 +140,10 @@ elif args.mode == 'test':
                             rep_sup=0.4, step=5, mmi_lambda=0.2, graph=knowledge_graph, post=input,
                             post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
                 beam_kg_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device,
-                            rep_sup=0.4, B=10, time_norm=2.0, parent_penalty=1.0, graph=knowledge_graph, post=input,
+                            rep_sup=0.4, B=10, length_norm=2.0, sibling_penalty=1.0, graph=knowledge_graph, post=input,
                             post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
                 diverse_beam_kg_ress = diverse_beam_search(decoder, hs, h, glove_vectors, target_dict, device,
-                            rep_sup=0.4, B=2, G=5, time_norm=2.0, parent_penalty=1.0, diverse_penalty=0.6, graph=knowledge_graph, post=input,
+                            rep_sup=0.4, B=2, G=5, length_norm=2.0, sibling_penalty=1.0, diversity_strength=0.6, graph=knowledge_graph, post=input,
                             post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
                 sampling_kg_res = sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
                             rep_sup=0.4, temp=0.4, graph=knowledge_graph, post=input,
