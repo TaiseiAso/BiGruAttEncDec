@@ -1,6 +1,6 @@
 # Attention Encoder-Decoder Dialog Model with GRU
 
-<img src="img/model.jpg" width="400"/>
+![model architecture](img/model.jpg)
 
 ## Goal
 - generic and easy method using knowledge graph
@@ -8,12 +8,13 @@
 - reform decoding method and objective function
 
 ## Example
-```
-Post: so instead of adding a simple key combination, they make you use their backwards mouse.
-Reference: no there is a dedicated button for it on the keyboard , or you can just keep your hand on your input device .
-Beam Search: you 're right . i 'm not a smart guy , but i do n't think it 's necessary to be a mouse
-+(Proposed): i do n't know if you can use a mouse pad , but it 's not easy to control the mouse .
-```
+| | |
+|:---:|:---|
+|Post|so instead of adding a simple key combination, they make you use their backwards mouse.|
+|Reference|no there is a dedicated button for it on the keyboard , or you can just keep your hand on your input device .|
+|Beam Search|you 're right . i 'm not a smart guy , but i do n't think it 's necessary to be a mouse|
+|+ Proposed|i do n't know if you can use a mouse pad , but it 's not easy to control the mouse .|
+|||
 
 ## Dataset
 - use dataset for CCM
