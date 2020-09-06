@@ -1,12 +1,12 @@
 # coding: utf-8
 
+from object import *
+from param import *
 import torch
 import json
 import random
 import copy
 import numpy as np
-from param import *
-from object import *
 
 
 def load_dialog_corpus(path, max_size=-1):
@@ -50,7 +50,7 @@ def create_dictionary(path):
     return {'word2idx': word2idx, 'idx2word': idx2word, 'nword': nword}
 
 
-def create_dialog_buckets(corpus):
+def create_dialog_buckets(corpus, graph=None):
     ngram2freq = get_ngram_frequency(corpus)
     bucket_cnt = len(BUCKET_SIZE)
     buckets = [[] for _ in range(bucket_cnt)]
@@ -60,6 +60,10 @@ def create_dialog_buckets(corpus):
         for bucket_id in range(bucket_cnt):
             if source_len <= BUCKET_SIZE[bucket_id][0] and target_len < BUCKET_SIZE[bucket_id][1]:
                 weights = get_INF_weights(dialog[1], ngram2freq)
+                if graph:
+                    weights_ = get_NG_weights(dialog[0], dialog[1], graph)
+                    for i in range(len(weights_)):
+                        weights[i] *= weights_[i]
                 dialog[1].insert(0, '_GO')
                 dialog[1].append('_EOS')
                 buckets[bucket_id].append([dialog[0], dialog[1], weights])

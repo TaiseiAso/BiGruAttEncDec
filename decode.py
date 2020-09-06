@@ -1,6 +1,5 @@
 # coding: utf-8
 
-import copy
 import torch.nn.functional as F
 from utils import *
 
@@ -10,15 +9,16 @@ def repetitive_suppression(out, dict, res_rep_dict, rep_sup):
         out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
 
 
-def entity_enhancer(out, dict, near_entities, n, enh, ignore_n=-1):
+def entity_enhancer(out, dict, near_entities, n, enh, ignore_n):
     for near, entities in enumerate(near_entities[1 + ignore_n:]):
+        enhance = (n + 1 - near - ignore_n) ** enh
         for entity in entities:
             if entity in dict['word2idx']:
-                out[dict['word2idx'][entity]] *= (n + 1 - near - ignore_n) ** enh
+                out[dict['word2idx'][entity]] *= enhance
 
 
-def sentence_entity_enhancer(out, dict, sentence, graph, n, enh, ignore_n=-1):
-    if ignore_n < -1: ignore_n = -1
+def sentence_entity_enhancer(out, dict, sentence, graph, n, enh, ignore_n):
+    ignore_n = max(-1, ignore_n)
     if n > ignore_n:
         near_entities = get_near_entities_from_knowledge_graph(sentence, graph, n)
         entity_enhancer(out, dict, near_entities, n, enh, ignore_n)
@@ -34,8 +34,8 @@ def greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
         out, h, _ = decoder(source_tensor, hs, h, None, device)
         out = out[0, 0].tolist()
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
-        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, ignore_n=post_ignore_n)
-        sentence_entity_enhancer(out, dict, res[1:], graph, res_n, res_enh, ignore_n=res_ignore_n)
+        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, post_ignore_n)
+        sentence_entity_enhancer(out, dict, res[1:], graph, res_n, res_enh, res_ignore_n)
         idx = np.argmax(out)
         token = dict['idx2word'][idx]
         if token == '_EOS': break

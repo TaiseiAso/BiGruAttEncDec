@@ -1,7 +1,7 @@
-test*.py
 model/
 log/
 data/
 img/
 _*/
 .*/
+_*
