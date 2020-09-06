@@ -61,7 +61,7 @@ def create_dialog_buckets(corpus, graph=None):
             if source_len <= BUCKET_SIZE[bucket_id][0] and target_len < BUCKET_SIZE[bucket_id][1]:
                 weights = get_INF_weights(dialog[1], ngram2freq)
                 if graph:
-                    weights_ = get_NG_weights(dialog[0], dialog[1], graph)
+                    weights_ = get_KG_weights(dialog[0], dialog[1], graph)
                     for i in range(len(weights_)):
                         weights[i] *= weights_[i]
                 dialog[1].insert(0, '_GO')
@@ -141,20 +141,47 @@ def load_knowledge_graph(path):
     return knowledge_graph
 
 
-def get_near_entities_from_knowledge_graph(post, graph, n):
+def get_word_near_entities(word, graph, n):
+    if not (graph and word in graph and n >= 0): return []
+    near_entities = [{word}]
+    entities = {word}
+    for i in range(n):
+        add_entities = set()
+        for entity in near_entities[-1]:
+            add_entities = add_entities.union(set(graph[entity]))
+        near_entities.append(add_entities.difference(entities))
+        entities = entities.union(near_entities[-1])
+    return near_entities
+
+
+def add_word_near_entities(near_entities, word, graph, n):
+    word_near_entities = get_word_near_entities(word, graph, n)
+    if not word_near_entities: return
+    if not near_entities:
+        for wne in word_near_entities:
+            near_entities.append(wne)
+        return
+    for i in range(len(near_entities)):
+        near_entities[i] = near_entities[i].union(word_near_entities[i])
+    entities = set()
+    for i in range(len(near_entities)):
+        near_entities[i] = near_entities[i].difference(entities)
+        entities = entities.union(near_entities[i])
+
+
+def get_sentence_near_entities(post, graph, n):
     if not (graph and post and n >= 0): return []
     near_entities = []
     entities = set()
     for word in post:
         if word in graph: entities.add(word)
     near_entities.append(entities)
-    for _ in range(n):
-        bef_entities = entities
+    for i in range(n):
         add_entities = set()
-        for entity in entities:
+        for entity in near_entities[-1]:
             add_entities = add_entities.union(set(graph[entity]))
-        entities = entities.union(add_entities)
-        near_entities.append(entities.difference(bef_entities))
+        near_entities.append(add_entities.difference(entities))
+        entities = entities.union(near_entities[-1])
     return near_entities
 
 
@@ -164,7 +191,7 @@ def get_ngram_frequency(corpus):
     top = ['_NORM']*(INF_N-2) + ['_GO']*min(1, INF_N-1)
     for _, response in corpus:
         response_ = top + response + ['_EOS']
-        for i in range(0, len(response_)-INF_N+1):
+        for i in range(len(response_)-INF_N+1):
             ngram = ' '.join(response_[i: i+INF_N])
             if ngram in ngram2freq: ngram2freq[ngram] += 1
             else: ngram2freq[ngram] = 1

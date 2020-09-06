@@ -49,7 +49,7 @@ def eval_bleu(answers, result, n):
 def eval_entity(posts, result, graph, n):
     entity_score_sum = 0
     for post, res in zip(posts, result):
-        near_entities = get_near_entities_from_knowledge_graph(post, graph, n)
+        near_entities = get_sentence_near_entities(post, graph, n)
         for word in res:
             if word in near_entities[n]: entity_score_sum += 1
     return entity_score_sum / len(result)

@@ -62,25 +62,25 @@ with torch.no_grad():
 
             greedy_kg_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
                         rep_sup=0.4, graph=knowledge_graph, post=input,
-                        post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                        post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
             mmi_antiLM_kg_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device,
                         rep_sup=0.4, step=5, mmi_lambda=0.2, graph=knowledge_graph, post=input,
-                        post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                        post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
             beam_kg_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device,
                         rep_sup=0.4, B=10, length_norm=2.0, sibling_penalty=1.0, graph=knowledge_graph, post=input,
-                        post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                        post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
             diverse_beam_kg_ress = diverse_beam_search(decoder, hs, h, glove_vectors, target_dict, device,
                         rep_sup=0.4, B=2, G=5, length_norm=2.0, sibling_penalty=1.0, diversity_strength=0.6, graph=knowledge_graph, post=input,
-                        post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                        post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
             sampling_kg_res = sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
                         rep_sup=0.4, temp=0.4, graph=knowledge_graph, post=input,
-                        post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                        post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
             top_k_sampling_kg_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
                         rep_sup=0.4, k=10, temp=0.4, graph=knowledge_graph, post=input,
-                        post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                        post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
             top_p_sampling_kg_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
                         rep_sup=0.4, p=0.5, temp=0.4, graph=knowledge_graph, post=input,
-                        post_n=1, post_enh=0.2, post_ignore_n=-1, res_n=1, res_enh=0.2, res_ignore_n=0)
+                        post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
 
             f.write("greedy:" + ' '.join(greedy_res) + "\n")
             f.write("mmi-antiLM:" + ' '.join(mmi_antiLM_res) + "\n")

@@ -34,12 +34,12 @@
 2. create folders (./data and ./log and ./model)
 3. dataset into ./data folder
 4. edit param.py
-5. $ python main.py
+5. $ python train.py
 6. stop learning with Ctrl+C
-7. $ python main.py -m test
+7. $ python test.py
 8. $ pip install rouge (for ROUGE eval)
 9. $ nltk.download('wordnet') (for METEOR eval)
-10. $ python main.py -m eval
+10. $ python eval.py
 
 ## Implement
 ### model
@@ -63,7 +63,7 @@
 - [x] softmax cross-entropy loss
 - [x] inverse token frequency loss
 - [x] inverse N-gram frequency loss
-- [ ] \+ with knowledge graph
+- [x] \+ with knowledge graph
 
 ### reranking method
 - [x] beam score
