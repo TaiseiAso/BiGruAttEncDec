@@ -78,8 +78,8 @@ def top_k_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, k=1,
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
         entity_enhancer(out, dict, post_near_entities, post_n, post_enh, post_ignore_n)
         entity_enhancer(out, dict, res_near_entities, res_n, res_enh, res_ignore_n)
-        out = F.softmax(out / temp, dim=0)
         topv, topi = out.topk(k)
+        topv = F.softmax(topv / temp, dim=0)
         idx = random.choices(topi.tolist(), weights=topv.tolist())[0]
         token = dict['idx2word'][idx]
         if token == '_EOS': break
@@ -90,7 +90,7 @@ def top_k_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, k=1,
     return res[1:]
 
 
-def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.0, temp=1.0,
+def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.0,
                           graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
@@ -103,7 +103,7 @@ def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
         entity_enhancer(out, dict, post_near_entities, post_n, post_enh, post_ignore_n)
         entity_enhancer(out, dict, res_near_entities, res_n, res_enh, res_ignore_n)
-        out = F.softmax(out / temp, dim=0)
+        out = F.softmax(out, dim=0)
         topi = np.argsort(out).tolist()[::-1]
         topv = [out[i] for i in topi]
         sumi, sumv = 0, 0

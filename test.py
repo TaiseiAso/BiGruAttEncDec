@@ -58,7 +58,7 @@ with torch.no_grad():
             top_k_sampling_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
                         rep_sup=0.4, k=10, temp=0.4)
             top_p_sampling_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
-                        rep_sup=0.4, p=0.5, temp=0.4)
+                        rep_sup=0.4, p=0.5)
 
             greedy_kg_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
                         rep_sup=0.4, graph=knowledge_graph, post=input,
@@ -79,7 +79,7 @@ with torch.no_grad():
                         rep_sup=0.4, k=10, temp=0.4, graph=knowledge_graph, post=input,
                         post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
             top_p_sampling_kg_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
-                        rep_sup=0.4, p=0.5, temp=0.4, graph=knowledge_graph, post=input,
+                        rep_sup=0.4, p=0.5, graph=knowledge_graph, post=input,
                         post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
 
             f.write("greedy:" + ' '.join(greedy_res) + "\n")
