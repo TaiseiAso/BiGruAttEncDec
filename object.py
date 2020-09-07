@@ -25,7 +25,7 @@ def get_KG_weights(post, res, graph):
     if not graph or not OBJ_KG: return [1.0]*len(res)
     ignore_post = max(-1, OBJ_IGNORE_POST)
     ignore_res = max(-1, OBJ_IGNORE_RES)
-    if OBJ_N_POST <= ignore_post or OBJ_N_RES <= ignore_res: return [1.0]*len(res)
+    if OBJ_N_POST <= ignore_post and OBJ_N_RES <= ignore_res: return [1.0]*len(res)
     from utils import get_sentence_near_entities, add_word_near_entities
     post_near_entities = get_sentence_near_entities(post, graph, OBJ_N_POST)
     res_near_entities = []
