@@ -46,7 +46,7 @@ decoder = Decoder(target_dict['nword']).to(device)
 encoder.train()
 decoder.train()
 
-criterion = nn.NLLLoss()
+criterion = nn.NLLLoss(ignore_index=0, reduction='none')
 
 encoder_optimizer = optim.Adam(encoder.parameters(), lr=LEARNING_RATE)
 decoder_optimizer = optim.Adam(decoder.parameters(), lr=LEARNING_RATE)
@@ -71,14 +71,13 @@ try:
             decoder_output, _, attention_weight = decoder(output_source_batch_tensor, hs, h, input_batch_length, device)
             decoder_output = F.log_softmax(decoder_output, dim=2)
             for i in range(decoder_output.size()[1]):
-                batch_loss = batch_size = 0
-                for j in range(decoder_output.size()[0]):
-                    if output_target_batch_tensor[j, i] == 0: continue
-                    batch_loss += \
-                        weights_batch[j][i] \
-                        * criterion(decoder_output[j, i, :].unsqueeze(0), output_target_batch_tensor[j, i].unsqueeze(0))
-                    batch_size += 1
-                if batch_size > 0: loss += batch_loss / batch_size
+                add_loss = batch_size = 0
+                batch_loss = criterion(decoder_output[:, i, :], output_target_batch_tensor[:, i])
+                for j, bl in enumerate(batch_loss):
+                    if output_target_batch_tensor[j, i] != 0:
+                        add_loss += weights_batch[j][i] * bl
+                        batch_size += 1
+                loss += add_loss / batch_size
             loss.backward()
 
             epoch_loss += loss.item()
