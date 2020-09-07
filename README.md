@@ -15,6 +15,11 @@
 |Beam Search|you 're right . i 'm not a smart guy , but i do n't think it 's necessary to be a **mouse**|
 |+ Proposed|i do n't know if you can use a **mouse** **pad** , but it 's not **easy** to control the **mouse** .|
 
+|Method|BLEU-1|BLEU-2|DIST-1|DIST-2|
+|:---:|:---:|:---:|:---:|:---:|
+|Beam Search|**14.545**|**2.827**|3.328|12.872|
+|+ Proposed|14.285|2.771|**3.934**|**17.619**|
+
 ## Dataset
 - use dataset for CCM
 (Commonsense Knowledge Aware Conversation Generation with Graph Attention)  
