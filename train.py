@@ -90,8 +90,9 @@ try:
         print(print_str)
         with open(train_log_name, 'a', encoding='utf-8') as f:
             f.write(print_str + "\n")
+    print("Finished")
 except KeyboardInterrupt:
-    print("Done")
+    print("Interrupted")
 
 encoder.save("./model/encoder" + args.model + ".pth")
 decoder.save("./model/decoder" + args.model + ".pth")

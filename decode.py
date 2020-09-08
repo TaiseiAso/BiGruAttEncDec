@@ -9,8 +9,9 @@ def repetitive_suppression(out, dict, res_rep_dict, rep_sup):
         out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
 
 
-def entity_enhancer(out, dict, near_entities, n, enh, ignore_n):
+def entity_enhancer(out, dict, near_entities, enh, ignore_n):
     ignore_n = max(-1, ignore_n)
+    n = len(near_entities) - 1
     for near, entities in enumerate(near_entities[1+ignore_n:]):
         enhance = (n + 1 - near - ignore_n) ** enh
         for entity in entities:
@@ -29,8 +30,8 @@ def greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
         out, h, _ = decoder(source_tensor, hs, h, None, device)
         out = out[0, 0].tolist()
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
-        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, post_ignore_n)
-        entity_enhancer(out, dict, res_near_entities, res_n, res_enh, res_ignore_n)
+        entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
+        entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
         idx = np.argmax(out)
         token = dict['idx2word'][idx]
         if token == '_EOS': break
@@ -52,8 +53,8 @@ def sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, temp=1.0,
         out, h, _ = decoder(source_tensor, hs, h, None, device)
         out = out[0, 0]
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
-        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, post_ignore_n)
-        entity_enhancer(out, dict, res_near_entities, res_n, res_enh, res_ignore_n)
+        entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
+        entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
         out = F.softmax(out / temp, dim=0).tolist()
         idx = random.choices(range(len(out)), weights=out)[0]
         token = dict['idx2word'][idx]
@@ -76,8 +77,8 @@ def top_k_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, k=1,
         out, h, _ = decoder(source_tensor, hs, h, None, device)
         out = out[0, 0]
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
-        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, post_ignore_n)
-        entity_enhancer(out, dict, res_near_entities, res_n, res_enh, res_ignore_n)
+        entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
+        entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
         topv, topi = out.topk(k)
         topv = F.softmax(topv / temp, dim=0)
         idx = random.choices(topi.tolist(), weights=topv.tolist())[0]
@@ -101,8 +102,8 @@ def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.
         out, h, _ = decoder(source_tensor, hs, h, None, device)
         out = out[0, 0].cpu()
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
-        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, post_ignore_n)
-        entity_enhancer(out, dict, res_near_entities, res_n, res_enh, res_ignore_n)
+        entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
+        entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
         out = F.softmax(out, dim=0)
         topi = np.argsort(out).tolist()[::-1]
         topv = [out[i] for i in topi]
@@ -137,8 +138,8 @@ def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=0, 
             out -= mmi_lambda * out_mmi
         out = out[0, 0].tolist()
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
-        entity_enhancer(out, dict, post_near_entities, post_n, post_enh, post_ignore_n)
-        entity_enhancer(out, dict, res_near_entities, res_n, res_enh, res_ignore_n)
+        entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
+        entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
         idx = np.argmax(out)
         token = dict['idx2word'][idx]
         if token == '_EOS': break
@@ -172,8 +173,8 @@ def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=1, G
                 out, next_h, _ = decoder(source_tensor, hs, beam['hidden'], None, device)
                 out = out[0, 0].cpu()
                 repetitive_suppression(out, dict, beam['res_rep_dict'], rep_sup)
-                entity_enhancer(out, dict, post_near_entities, post_n, post_enh, post_ignore_n)
-                entity_enhancer(out, dict, beam['res_near_entities'], res_n, res_enh, res_ignore_n)
+                entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
+                entity_enhancer(out, dict, beam['res_near_entities'], res_enh, res_ignore_n)
                 out = F.log_softmax(out, dim=0) + beam['score']
                 ranks = out / (beam['length'] ** length_norm)
                 out = out.tolist()

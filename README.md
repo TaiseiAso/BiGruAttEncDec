@@ -105,6 +105,7 @@
 - http://unicorn.ike.tottori-u.ac.jp/2012/s092013/paper/graduation-thesis/node31.html
 - http://yagami12.hatenablog.com/entry/2017/12/30/175113
 - https://medium.com/@aiii/pytorch-e64c248ab428
+- https://qdata.github.io/deep2Read//talks2019/Extra19s/TkachStochasticBeamSearch.pdf
 
 ### Paper
 - http://coai.cs.tsinghua.edu.cn/hml/media/files/2018_commonsense_ZhouHao_3_TYVQ7Iq.pdf
@@ -116,3 +117,5 @@
 - https://arxiv.org/pdf/1904.09751.pdf
 - https://ahcweb01.naist.jp/papers/conference/2019/201906_SIGNL_sara-as/201906_SIGNL_sara-as.paper.pdf
 - https://www.jstage.jst.go.jp/article/jnlp/21/3/21_421/_pdf
+- https://arxiv.org/pdf/1911.03587.pdf
+- https://arxiv.org/pdf/1611.08562.pdf
