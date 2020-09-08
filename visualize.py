@@ -1,4 +1,5 @@
 # coding: utf-8
+# To use this, create folder img/ in ./log/
 
 import warnings
 warnings.simplefilter('ignore')
@@ -6,27 +7,13 @@ warnings.simplefilter('ignore')
 import argparse
 import matplotlib.pyplot as plt
 from model import *
-from decode import *
+from utils import *
+from decode import entity_enhancer, repetitive_suppression
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 parser.add_argument('-n', '--name', type=str, default="", help="visualize name")
 args = parser.parse_args()
-
-
-def repetitive_suppression(out, dict, res_rep_dict, rep_sup):
-    for tok, rep in res_rep_dict.items():
-        out[dict['word2idx'][tok]] /= (1 + rep) ** rep_sup
-
-
-def entity_enhancer(out, dict, near_entities, enh, ignore_n):
-    ignore_n = max(-1, ignore_n)
-    n = len(near_entities) - 1
-    for near, entities in enumerate(near_entities[1+ignore_n:]):
-        enhance = (n + 1 - near - ignore_n) ** enh
-        for entity in entities:
-            if entity in dict['word2idx']:
-                out[dict['word2idx'][entity]] *= enhance
 
 
 def get_near(near, tokens, near_entities):
@@ -38,8 +25,8 @@ def get_near(near, tokens, near_entities):
                 break
 
 
-def greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
-                  graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
+def visualize_greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
+                            graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
     post_near_entities = get_sentence_near_entities(post, graph, post_n)
@@ -77,7 +64,7 @@ def draw(name, topvs, topts, nears):
     if VISUALIZE_LOG: plt.yscale("log")
     plt.xlim([0.1, len(topvs)+0.9])
     plt.xlabel("time step", fontsize=15)
-    plt.ylabel("probablity", fontsize=15)
+    plt.ylabel("probability", fontsize=15)
     plt.subplots_adjust(left=0.2, right=0.9, bottom=0.1, top=0.95)
     plt.xticks(np.arange(1, len(topvs)+1, 1.0))
     vs = [topv[0] for topv in topvs]
@@ -120,10 +107,10 @@ with torch.no_grad():
     for i, [input, output] in enumerate(dialog_corpus):
         input_tensor = batch_to_tensor([input], glove_vectors, device)
         hs, h = encoder(input_tensor, None)
-        res, topvs, topts, nears = greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
+        _, topvs, topts, nears = visualize_greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
                 rep_sup=0.4, graph=knowledge_graph, post=input, post_n=3)
         draw(visualize_log_name + str(i+1) + ".png", topvs, topts, nears)
-        res, topvs, topts, nears = greedy_kg_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
+        _, topvs, topts, nears = greedy_kg_res = visualize_greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
                 rep_sup=0.4, graph=knowledge_graph, post=input,
                 post_n=3, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
         draw(visualize_log_name + str(i+1) + "(KG).png", topvs, topts, nears)

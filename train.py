@@ -71,16 +71,16 @@ try:
             decoder_output, _, attention_weight = decoder(output_source_batch_tensor, hs, h, input_batch_length, device)
             decoder_output = F.log_softmax(decoder_output, dim=2)
             for i in range(decoder_output.size()[1]):
-                add_loss = batch_size = 0
+                add_loss = batch_size = add_epoch_loss = 0
                 batch_loss = criterion(decoder_output[:, i, :], output_target_batch_tensor[:, i])
                 for j, bl in enumerate(batch_loss):
                     if output_target_batch_tensor[j, i] != 0:
                         add_loss += weights_batch[j][i] * bl
+                        add_epoch_loss += bl.item()
                         batch_size += 1
                 loss += add_loss / batch_size
+                epoch_loss += add_epoch_loss / batch_size
             loss.backward()
-
-            epoch_loss += loss.item()
 
             encoder_optimizer.step()
             decoder_optimizer.step()
