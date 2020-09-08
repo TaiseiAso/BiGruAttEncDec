@@ -88,13 +88,10 @@ def draw(name, topvs, topts, nears):
         i = 0
         for tv, tt, n in zip(topv, topt, near):
             i += 1
-            col = 'blue' if i == 1 else ['k', 'yellow', 'orange', 'red'][min(3, n)]
-            if i == 1 or n > 0:
-                plt.scatter(t, tv, c=col, s=30)
-                plt.annotate(tt, xy=(t, tv), fontsize=15, color='k')
-            else:
-                plt.scatter(t, tv, c=col, s=10)
-                # plt.annotate(tt, xy=(t, tv), fontsize=10, color='red')
+            col = ['k', 'yellow', 'orange', 'red'][min(3, n)]
+            if n == 0: plt.scatter(t, tv, c=col, s=10)
+            else: plt.scatter(t, tv, c=col, s=30)
+            if i == 1 or n > 0: plt.annotate(tt, xy=(t, tv), fontsize=15, color='k')
     plt.savefig(name)
 
 

@@ -13,7 +13,8 @@ def get_INF_weights(target, ngram2freq):
     return weights
 
 
-def get_entity_weight(entity, near_entities, n, enh, ignore):
+def get_entity_weight(entity, near_entities, enh, ignore):
+    n = len(near_entities) - 1
     for near, entities in enumerate(near_entities):
         if entity in entities:
             if near <= ignore: break
@@ -31,9 +32,9 @@ def get_KG_weights(post, res, graph):
     res_near_entities = []
     weights = []
     for i in range(len(res)):
-        weight = get_entity_weight(res[i], post_near_entities, OBJ_N_POST, OBJ_ENH_POST, ignore_post)
+        weight = get_entity_weight(res[i], post_near_entities, OBJ_ENH_POST, ignore_post)
         if i > 0:
             add_word_near_entities(res_near_entities, res[i-1], graph, OBJ_N_RES)
-            weight *= get_entity_weight(res[i], res_near_entities, OBJ_N_RES, OBJ_ENH_RES, ignore_res)
+            weight *= get_entity_weight(res[i], res_near_entities, OBJ_ENH_RES, ignore_res)
         weights.append(weight)
     return weights
