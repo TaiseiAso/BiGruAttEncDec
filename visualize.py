@@ -59,12 +59,12 @@ def visualize_greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
 
 
 def draw(name, topvs, topts, nears):
-    plt.figure(figsize=(2*(len(topvs)), 6))
+    plt.figure(figsize=(1.5*(len(topvs)), 6))
     if VISUALIZE_LOG: plt.yscale("log")
     plt.xlim([0.1, len(topvs)+0.9])
     plt.xlabel("time step", fontsize=15)
     plt.ylabel("probability", fontsize=15)
-    plt.subplots_adjust(left=0.2, right=0.9, bottom=0.1, top=0.95)
+    plt.subplots_adjust(bottom=0.1, top=0.95)
     plt.xticks(np.arange(1, len(topvs)+1, 1.0))
     vs = [topv[0] for topv in topvs]
     plt.plot(np.array(range(1, len(vs)+1)), vs, c='blue')
