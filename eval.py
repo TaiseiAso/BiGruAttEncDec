@@ -9,7 +9,6 @@ from eval_func import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-t', '--test_name', type=str, default="", help="test name")
-parser.add_argument('-e', '--eval_name', type=str, default="", help="eval name")
 args = parser.parse_args()
 
 knowledge_graph = load_knowledge_graph("./data/resource.txt")
@@ -19,7 +18,7 @@ if not os.path.exists(test_log_name):
     print("No test log file")
     exit()
 
-eval_log_name = "./log/eval" + args.eval_name + ".txt"
+eval_log_name = "./log/eval" + args.test_name + ".txt"
 if os.path.exists(eval_log_name):
     os.remove(eval_log_name)
 

@@ -103,12 +103,12 @@ def create_dialog_batchs(buckets):
     return batchs
 
 
-def batch_to_tensor(batch, glove, device):
+def batch_to_tensor(batch, glove, device, rand=False):
     batch_tensor = []
     for data in batch:
         batch_tensor.append(
             [
-                random.choice(list(glove.values())) if random.random() < RANDOM_SWAP
+                random.choice(list(glove.values())) if rand and random.random() < RANDOM_SWAP
                 else glove.get(word, glove['_NONE'])
                 for word in data
             ]

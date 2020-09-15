@@ -10,7 +10,6 @@ from decode import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
-parser.add_argument('-n', '--name', type=str, default="", help="test name")
 args = parser.parse_args()
 
 knowledge_graph = load_knowledge_graph("./data/resource.txt")
@@ -53,6 +52,6 @@ with torch.no_grad():
         perplexity += math.exp(H)
 perplexity /= len(dialog_corpus)
 
-test_log_name = "./log/perplexity" + args.name + ".txt"
+test_log_name = "./log/perplexity" + args.model + ".txt"
 with open(test_log_name, 'w', encoding='utf-8') as f:
     f.write(args.model + ": " + str(perplexity) + "\n")

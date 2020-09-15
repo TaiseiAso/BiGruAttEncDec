@@ -23,7 +23,7 @@ device = torch.device(device_name)
 target_dict = create_dictionary("./data/resource.txt")
 glove_vectors = load_glove("./data/glove.840B.300d.txt", target_dict)
 
-test_log_name = "./log/test" + args.name + ".txt"
+test_log_name = "./log/test" + args.model + args.name + ".txt"
 if os.path.exists(test_log_name):
     os.remove(test_log_name)
 

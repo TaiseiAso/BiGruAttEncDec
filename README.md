@@ -40,7 +40,7 @@
 3. dataset into ./data folder
 4. edit param.py
 5. $ python train.py
-6. stop learning with Ctrl+C
+6. (stop learning with 'Ctrl+C')
 7. $ python test.py
 8. $ pip install rouge (for ROUGE eval)
 9. $ nltk.download('wordnet') (for METEOR eval)
@@ -74,6 +74,7 @@
 - [x] beam score
 - [ ] entity score
 - [ ] breakdown possibility
+- [ ] auto evaluation
 
 ### automatic evaluation
 - [x] Length
@@ -88,6 +89,7 @@
 ### others
 - [x] length normalization
 - [x] repetitive suppression
+- [ ] TF-IDF
 
 ## Reference (random order)
 ### Site
@@ -119,3 +121,5 @@
 - https://www.jstage.jst.go.jp/article/jnlp/21/3/21_421/_pdf
 - https://arxiv.org/pdf/1911.03587.pdf
 - https://arxiv.org/pdf/1611.08562.pdf
+- https://www.anlp.jp/proceedings/annual_meeting/2006/pdf_dir/B4-4.pdf
+- https://anlp.jp/proceedings/annual_meeting/2018/pdf_dir/A4-2.pdf

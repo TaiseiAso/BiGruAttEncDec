@@ -12,7 +12,6 @@ from decode import entity_enhancer, repetitive_suppression
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
-parser.add_argument('-n', '--name', type=str, default="", help="visualize name")
 args = parser.parse_args()
 
 
@@ -92,7 +91,7 @@ device = torch.device(device_name)
 target_dict = create_dictionary("./data/resource.txt")
 glove_vectors = load_glove("./data/glove.840B.300d.txt", target_dict)
 
-visualize_log_name = "./log/img/visualize" + args.name + "_"
+visualize_log_name = "./log/img/visualize" + args.model + "_"
 
 dialog_corpus = load_dialog_corpus("./data/trainset.txt", MAX_VISUALIZE_DIALOG_CORPUS_SIZE)
 
@@ -108,9 +107,9 @@ with torch.no_grad():
         input_tensor = batch_to_tensor([input], glove_vectors, device)
         hs, h = encoder(input_tensor, None)
         _, topvs, topts, nears = visualize_greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
-                rep_sup=0.4, graph=knowledge_graph, post=input, post_n=3)
+                rep_sup=0.4, graph=knowledge_graph, post=input, post_n=2)
         draw(visualize_log_name + str(i+1) + ".png", topvs, topts, nears)
         _, topvs, topts, nears = greedy_kg_res = visualize_greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
                 rep_sup=0.4, graph=knowledge_graph, post=input,
-                post_n=3, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
+                post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
         draw(visualize_log_name + str(i+1) + "(KG).png", topvs, topts, nears)

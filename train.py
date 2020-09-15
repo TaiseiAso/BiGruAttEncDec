@@ -60,9 +60,9 @@ try:
             encoder_optimizer.zero_grad()
             decoder_optimizer.zero_grad()
 
-            input_batch_tensor = batch_to_tensor(input_batch, glove_vectors, device)
+            input_batch_tensor = batch_to_tensor(input_batch, glove_vectors, device, rand=True)
             np_output_batch = np.array(output_batch)
-            output_source_batch_tensor = batch_to_tensor(np_output_batch[:, :-1], glove_vectors, device)
+            output_source_batch_tensor = batch_to_tensor(np_output_batch[:, :-1], glove_vectors, device, rand=True)
             output_target_batch_tensor = batch_to_id_tensor(np_output_batch[:, 1:], target_dict, device)
 
             hs, h = encoder(input_batch_tensor, input_batch_length)
