@@ -12,8 +12,6 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 args = parser.parse_args()
 
-knowledge_graph = load_knowledge_graph("./data/resource.txt")
-
 torch.backends.cudnn.benchmark = True
 
 device_name = 'cuda:'+str(CUDA) if torch.cuda.is_available() else 'cpu'

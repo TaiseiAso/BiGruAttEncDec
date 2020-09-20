@@ -10,7 +10,7 @@ from decode import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
-parser.add_argument('-n', '--name', type=str, default="", help="test name")
+parser.add_argument('-n', '--name', type=str, default="", help="analyze name")
 args = parser.parse_args()
 
 knowledge_graph = load_knowledge_graph("./data/resource.txt")
@@ -23,7 +23,7 @@ device = torch.device(device_name)
 target_dict = create_dictionary("./data/resource.txt")
 glove_vectors = load_glove("./data/glove.840B.300d.txt", target_dict)
 
-test_log_name = "./log/test" + args.model + args.name + ".txt"
+test_log_name = "./log/analyze" + args.model + args.name + ".txt"
 if os.path.exists(test_log_name):
     os.remove(test_log_name)
 
@@ -35,6 +35,11 @@ encoder.load("./model/encoder" + args.model + ".pth", device_name)
 decoder.load("./model/decoder" + args.model + ".pth", device_name)
 encoder.eval()
 decoder.eval()
+
+ngram2freq = None
+if TEST_INF_N > 0:
+    dialog_corpus = load_dialog_corpus("./data/trainset.txt", MAX_DIALOG_CORPUS_SIZE)
+    ngram2freq = get_ngram_frequency(dialog_corpus, TEST_INF_N)
 
 with torch.no_grad():
     for input, output in dialog_corpus:

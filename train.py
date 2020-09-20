@@ -13,18 +13,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 args = parser.parse_args()
 
-param_log_name = "./log/param" + args.model + ".txt"
-with open(param_log_name, 'w', encoding='utf-8') as f_out,\
-        open("param.py", 'r', encoding='utf-8') as f_in:
-    _ = f_in.readline()
-    line = f_in.readline()
-    while line:
-        f_out.write(line)
-        line = f_in.readline()
+save_param("./log/param" + args.model + ".txt", "param.py")
 
-knowledge_graph = None
-if OBJ_KG:
+knowledge_graph = idf = None
+if OBJ_KG_N >= 0:
     knowledge_graph = load_knowledge_graph("./data/resource.txt")
+    if OBJ_KG_IDF:
+        idf = load_idf("./data/idf.txt")
+
+ngram2freq = None
+if OBJ_INF_N > 0:
+    ngram2freq = load_ngram2freq("./data/" + str(OBJ_INF_N) + "ngram2freq.txt")
 
 torch.backends.cudnn.benchmark = True
 
@@ -39,7 +38,7 @@ if os.path.exists(train_log_name):
     os.remove(train_log_name)
 
 dialog_corpus = load_dialog_corpus("./data/trainset.txt", MAX_DIALOG_CORPUS_SIZE)
-dialog_buckets = create_dialog_buckets(dialog_corpus, graph=knowledge_graph)
+dialog_buckets = create_dialog_buckets(dialog_corpus, graph=knowledge_graph, idf=idf, ngram2freq=ngram2freq)
 
 encoder = Encoder().to(device)
 decoder = Decoder(target_dict['nword']).to(device)

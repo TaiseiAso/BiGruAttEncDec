@@ -6,6 +6,7 @@ import torch
 import json
 import random
 import copy
+import os
 import numpy as np
 
 
@@ -50,8 +51,7 @@ def create_dictionary(path):
     return {'word2idx': word2idx, 'idx2word': idx2word, 'nword': nword}
 
 
-def create_dialog_buckets(corpus, graph=None):
-    ngram2freq = get_ngram_frequency(corpus)
+def create_dialog_buckets(corpus, graph=None, idf=None, ngram2freq=None):
     bucket_cnt = len(BUCKET_SIZE)
     buckets = [[] for _ in range(bucket_cnt)]
     for dialog in corpus:
@@ -60,10 +60,10 @@ def create_dialog_buckets(corpus, graph=None):
         for bucket_id in range(bucket_cnt):
             if source_len <= BUCKET_SIZE[bucket_id][0] and target_len < BUCKET_SIZE[bucket_id][1]:
                 weights = get_INF_weights(dialog[1], ngram2freq)
-                if graph:
-                    weights_ = get_KG_weights(dialog[0], dialog[1], graph)
-                    for i in range(len(weights_)):
-                        weights[i] *= weights_[i]
+                weights_ = get_KG_weights(dialog[0], dialog[1], graph, idf)
+                if weights_:
+                    for i, w in enumerate(weights_):
+                        weights[i] *= w
                 dialog[1].insert(0, '_GO')
                 dialog[1].append('_EOS')
                 buckets[bucket_id].append([dialog[0], dialog[1], weights])
@@ -141,8 +141,7 @@ def load_knowledge_graph(path):
     return knowledge_graph
 
 
-def get_word_near_entities(word, graph, n):
-    if not (graph and word in graph and n >= 0): return []
+def get_near_entities(word, graph, n):
     near_entities = [{word}]
     entities = {word}
     for i in range(n):
@@ -154,45 +153,50 @@ def get_word_near_entities(word, graph, n):
     return near_entities
 
 
-def add_word_near_entities(near_entities, word, graph, n):
-    word_near_entities = get_word_near_entities(word, graph, n)
-    if not word_near_entities: return
-    if not near_entities:
-        for wne in word_near_entities:
-            near_entities.append(wne)
-        return
-    for i in range(len(near_entities)):
-        near_entities[i] = near_entities[i].union(word_near_entities[i])
-    entities = set()
-    for i in range(len(near_entities)):
-        near_entities[i] = near_entities[i].difference(entities)
-        entities = entities.union(near_entities[i])
+def add_near_entities_dict(near_entities_dict, word, graph, n):
+    if word in near_entities_dict or word not in graph: return
+    near_entities_dict[word] = get_near_entities(word, graph, n)
 
 
-def get_sentence_near_entities(post, graph, n):
-    if not (graph and post and n >= 0): return []
-    near_entities = []
-    entities = set()
-    for word in post:
-        if word in graph: entities.add(word)
-    near_entities.append(entities)
-    for i in range(n):
-        add_entities = set()
-        for entity in near_entities[-1]:
-            add_entities = add_entities.union(set(graph[entity]))
-        near_entities.append(add_entities.difference(entities))
-        entities = entities.union(near_entities[-1])
-    return near_entities
+def add_dict(dict, key):
+    if key in dict:
+        dict[key] += 1
+    else:
+        dict[key] = 1
 
 
-def get_ngram_frequency(corpus):
-    if INF_N <= 0: return None
+def load_ngram2freq(path):
     ngram2freq = {}
-    top = ['_NORM']*(INF_N-2) + ['_GO']*min(1, INF_N-1)
-    for _, response in corpus:
-        response_ = top + response + ['_EOS']
-        for i in range(len(response_)-INF_N+1):
-            ngram = ' '.join(response_[i: i+INF_N])
-            if ngram in ngram2freq: ngram2freq[ngram] += 1
-            else: ngram2freq[ngram] = 1
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            line = f.readline().strip()
+            while line:
+                freq, ngram = line.split(',', 1)
+                ngram2freq[ngram] = freq
+                line = f.readline().strip()
+    if ngram2freq == {}: return None
     return ngram2freq
+
+
+def load_idf(path):
+    idf = {}
+    if os.path.exists(path):
+        with open(path, 'r', encoding='utf-8') as f:
+            line = f.readline().strip()
+            while line:
+                value, entity = line.split(',', 1)
+                idf[entity] = float(value)
+                line = f.readline().strip()
+    if idf == {}: return None
+    return idf
+
+
+def save_param(path, param_path):
+    with open(path, 'w', encoding='utf-8') as f_out, \
+            open(param_path, 'r', encoding='utf-8') as f_in:
+        _ = f_in.readline()
+        line = f_in.readline()
+        while line:
+            f_out.write(line)
+            line = f_in.readline()
+

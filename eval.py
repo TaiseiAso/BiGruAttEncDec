@@ -8,14 +8,14 @@ import os
 from eval_func import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-t', '--test_name', type=str, default="", help="test name")
+parser.add_argument('-t', '--test_name', type=str, default="", help="analyze name")
 args = parser.parse_args()
 
 knowledge_graph = load_knowledge_graph("./data/resource.txt")
 
-test_log_name = "./log/test" + args.test_name + ".txt"
+test_log_name = "./log/analyze" + args.test_name + ".txt"
 if not os.path.exists(test_log_name):
-    print("No test log file")
+    print("No analyze log file")
     exit()
 
 eval_log_name = "./log/eval" + args.test_name + ".txt"
@@ -25,7 +25,6 @@ if os.path.exists(eval_log_name):
 posts = []
 answers = []
 results = {'human': []}
-isFirst = True
 with open(test_log_name, 'r', encoding='utf-8') as f:
     line = f.readline().strip()
     while line:
@@ -38,11 +37,10 @@ with open(test_log_name, 'r', encoding='utf-8') as f:
         line = f.readline().strip()
         while line != "":
             method, result = line.split(':', 1)
-            if isFirst: results[method] = [result.split()]
-            else: results[method].append(result.split())
+            if method in results: results[method].append(result.split())
+            else: results[method] = [result.split()]
             line = f.readline().strip()
         line = f.readline().strip()
-        isFirst = False
 
 max_method_len = max([len(method) for method in results.keys()] + [8]) + 1
 with open(eval_log_name, 'a', encoding='utf-8') as f:

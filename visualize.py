@@ -25,7 +25,7 @@ def get_near(near, tokens, near_entities):
 
 
 def visualize_greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
-                            graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
+                            graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=-1, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
     post_near_entities = get_sentence_near_entities(post, graph, post_n)
@@ -40,6 +40,7 @@ def visualize_greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
         entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
         entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
+        if IGNORE_UNK: out[1] = float('-inf')
         out = F.softmax(out, dim=0)
         topv, topi = out.topk(MAX_VISUALIZE_WIDTH)
         topv, topi = topv.tolist(), topi.tolist()
@@ -51,8 +52,7 @@ def visualize_greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
         nears.append(near)
         token = topt[0]
         if token == '_EOS': break
-        if token in res_rep_dict: res_rep_dict[token] += 1
-        else: res_rep_dict[token] = 1
+        add_dict(res_rep_dict, token)
         res.append(token)
         add_word_near_entities(res_near_entities, token, graph, res_n)
     return res[1:], topvs, topts, nears
@@ -64,7 +64,7 @@ def draw(name, topvs, topts, nears):
     plt.xlim([0.1, len(topvs)+0.9])
     plt.xlabel("time step", fontsize=15)
     plt.ylabel("probability", fontsize=15)
-    plt.subplots_adjust(bottom=0.1, top=0.95)
+    # plt.subplots_adjust(bottom=0.1, top=0.95)
     plt.xticks(np.arange(1, len(topvs)+1, 1.0))
     vs = [topv[0] for topv in topvs]
     plt.plot(np.array(range(1, len(vs)+1)), vs, c='blue')

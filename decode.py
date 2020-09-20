@@ -20,7 +20,7 @@ def entity_enhancer(out, dict, near_entities, enh, ignore_n):
 
 
 def greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
-                  graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
+                  graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=-1, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
     post_near_entities = get_sentence_near_entities(post, graph, post_n)
@@ -32,18 +32,18 @@ def greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
         entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
         entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
+        if IGNORE_UNK: out[1] = float('-inf')
         idx = np.argmax(out)
         token = dict['idx2word'][idx]
         if token == '_EOS': break
-        if token in res_rep_dict: res_rep_dict[token] += 1
-        else: res_rep_dict[token] = 1
+        add_dict(res_rep_dict, token)
         res.append(token)
         add_word_near_entities(res_near_entities, token, graph, res_n)
     return res[1:]
 
 
 def sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, temp=1.0,
-                    graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
+                    graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=-1, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
     post_near_entities = get_sentence_near_entities(post, graph, post_n)
@@ -55,19 +55,19 @@ def sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, temp=1.0,
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
         entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
         entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
+        if IGNORE_UNK: out[1] = float('-inf')
         out = F.softmax(out / temp, dim=0).tolist()
         idx = random.choices(range(len(out)), weights=out)[0]
         token = dict['idx2word'][idx]
         if token == '_EOS': break
-        if token in res_rep_dict: res_rep_dict[token] += 1
-        else: res_rep_dict[token] = 1
+        add_dict(res_rep_dict, token)
         res.append(token)
         add_word_near_entities(res_near_entities, token, graph, res_n)
     return res[1:]
 
 
 def top_k_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, k=1, temp=1.0,
-                          graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
+                          graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=-1, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
     post_near_entities = get_sentence_near_entities(post, graph, post_n)
@@ -79,20 +79,20 @@ def top_k_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, k=1,
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
         entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
         entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
+        if IGNORE_UNK: out[1] = float('-inf')
         topv, topi = out.topk(k)
         topv = F.softmax(topv / temp, dim=0)
         idx = random.choices(topi.tolist(), weights=topv.tolist())[0]
         token = dict['idx2word'][idx]
         if token == '_EOS': break
-        if token in res_rep_dict: res_rep_dict[token] += 1
-        else: res_rep_dict[token] = 1
+        add_dict(res_rep_dict, token)
         res.append(token)
         add_word_near_entities(res_near_entities, token, graph, res_n)
     return res[1:]
 
 
 def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.0,
-                          graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
+                          graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=-1, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
     post_near_entities = get_sentence_near_entities(post, graph, post_n)
@@ -104,6 +104,7 @@ def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
         entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
         entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
+        if IGNORE_UNK: out[1] = float('-inf')
         out = F.softmax(out, dim=0)
         topi = np.argsort(out).tolist()[::-1]
         topv = [out[i] for i in topi]
@@ -115,15 +116,14 @@ def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.
         idx = random.choices(topi[:sumi], weights=topv[:sumi])[0]
         token = dict['idx2word'][idx]
         if token == '_EOS': break
-        if token in res_rep_dict: res_rep_dict[token] += 1
-        else: res_rep_dict[token] = 1
+        add_dict(res_rep_dict, token)
         res.append(token)
         add_word_near_entities(res_near_entities, token, graph, res_n)
     return res[1:]
 
 
 def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=0, mmi_lambda=0.0,
-                      graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
+                      graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=-1, res_enh=0.0, res_ignore_n=0):
     res = ['_GO']
     res_rep_dict = {}
     post_near_entities = get_sentence_near_entities(post, graph, post_n)
@@ -140,18 +140,18 @@ def mmi_antiLM_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, step=0, 
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
         entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
         entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
+        if IGNORE_UNK: out[1] = float('-inf')
         idx = np.argmax(out)
         token = dict['idx2word'][idx]
         if token == '_EOS': break
-        if token in res_rep_dict: res_rep_dict[token] += 1
-        else: res_rep_dict[token] = 1
+        add_dict(res_rep_dict, token)
         res.append(token)
         add_word_near_entities(res_near_entities, token, graph, res_n)
     return res[1:]
 
 
 def beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=1, length_norm=1.0, sibling_penalty=0.0,
-                graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
+                graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=-1, res_enh=0.0, res_ignore_n=0):
     return diverse_beam_search(decoder, hs, h, glove, dict, device,
                                rep_sup=rep_sup, B=B, G=1, length_norm=length_norm, sibling_penalty=sibling_penalty, diversity_strength=0,
                                graph=graph, post=post, post_n=post_n, post_enh=post_enh, post_ignore_n=post_ignore_n,
@@ -159,7 +159,7 @@ def beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=1, length_no
 
 
 def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=1, G=1, length_norm=1.0, sibling_penalty=0.0, diversity_strength=0.0,
-                        graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=0, res_enh=0.0, res_ignore_n=0):
+                        graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=-1, res_enh=0.0, res_ignore_n=0):
     ress = []
     post_near_entities = get_sentence_near_entities(post, graph, post_n)
     beam_sizes = [B for _ in range(G)]
@@ -175,6 +175,7 @@ def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=1, G
                 repetitive_suppression(out, dict, beam['res_rep_dict'], rep_sup)
                 entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
                 entity_enhancer(out, dict, beam['res_near_entities'], res_enh, res_ignore_n)
+                if IGNORE_UNK: out[1] = float('-inf')
                 out = F.log_softmax(out, dim=0) + beam['score']
                 ranks = out / (beam['length'] ** length_norm)
                 out = out.tolist()
@@ -187,14 +188,11 @@ def diverse_beam_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, B=1, G
                 for child, idx in enumerate(arg):
                     token = dict['idx2word'][idx]
                     next_res_rep_dict = copy.copy(beam['res_rep_dict'])
-                    if token in next_res_rep_dict:
-                        next_res_rep_dict[token] += 1
-                    else:
-                        next_res_rep_dict[token] = 1
+                    add_dict(next_res_rep_dict, token)
                     next_res_near_entities = copy.copy(beam['res_near_entities'])
                     add_word_near_entities(next_res_near_entities, token, graph, res_n)
                     next_beams.append({
-                        'res': beam['res']+[token] if beam['length'] < MAX_TEST_LENGTH else beam['res']+[token]+['_EOS'],
+                        'res': beam['res']+[token]+['_EOS'] if beam['length'] == MAX_TEST_LENGTH and token != '_EOS' else beam['res']+[token],
                         'res_rep_dict': next_res_rep_dict,
                         'res_near_entities': next_res_near_entities, 'score': out[idx],
                         'hidden': next_h, 'length': beam['length']+1, 'penalty': child * sibling_penalty
