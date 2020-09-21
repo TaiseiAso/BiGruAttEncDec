@@ -21,7 +21,7 @@ def get_entity_weight(entity, near_entities_dict, idf):
         for near, entities in enumerate(near_entities):
             if entity in entities:
                 idf_ = idf[word] if idf and word in idf else 1.0
-                weight = idf_ * ((OBJ_KG_N + 2 - near) ** OBJ_KG_ENH)
+                weight = idf_ * ((OBJ_KG_N + 2 - near) ** OBJ_KG_ENH - 1) + 1
                 max_weight = max(max_weight, weight)
                 break
     return max_weight

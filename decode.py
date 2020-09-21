@@ -16,7 +16,7 @@ def entity_enhance(out, dict, near_entities_dict, idf, enh):
         n = len(near_entities) - 1
         idf_ = idf[word] if idf and word in idf else 1.0
         for near, entities in enumerate(near_entities):
-            enh_ = idf_ * ((n + 2 - near) ** enh)
+            enh_ = idf_ * ((n + 2 - near) ** enh - 1) + 1
             for entity in entities:
                 if entity in dict['word2idx']:
                     idx = dict['word2idx'][entity]
