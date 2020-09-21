@@ -1,12 +1,13 @@
 # coding: utf-8
+# To use this file, put in above folder.
 
 import warnings
 warnings.simplefilter('ignore')
 
-import argparse
-import os
 from model import *
 from decode import *
+import argparse
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")

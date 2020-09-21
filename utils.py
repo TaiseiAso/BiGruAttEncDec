@@ -59,8 +59,8 @@ def create_dialog_buckets(corpus, graph=None, idf=None, ngram2freq=None):
         target_len = len(dialog[1])
         for bucket_id in range(bucket_cnt):
             if source_len <= BUCKET_SIZE[bucket_id][0] and target_len < BUCKET_SIZE[bucket_id][1]:
-                weights = get_INF_weights(dialog[1], ngram2freq)
-                weights_ = get_KG_weights(dialog[0], dialog[1], graph, idf)
+                weights = get_inf_weights(dialog[1], ngram2freq)
+                weights_ = get_kg_weights(dialog[0], dialog[1], graph, idf)
                 if weights_:
                     for i, w in enumerate(weights_):
                         weights[i] *= w
@@ -154,7 +154,7 @@ def get_near_entities(word, graph, n):
 
 
 def add_near_entities_dict(near_entities_dict, word, graph, n):
-    if word in near_entities_dict or word not in graph: return
+    if word in near_entities_dict or not graph or word not in graph or n < 0: return
     near_entities_dict[word] = get_near_entities(word, graph, n)
 
 
@@ -191,8 +191,8 @@ def load_idf(path):
     return idf
 
 
-def save_param(path, param_path):
-    with open(path, 'w', encoding='utf-8') as f_out, \
+def save_param(save_path, param_path):
+    with open(save_path, 'w', encoding='utf-8') as f_out, \
             open(param_path, 'r', encoding='utf-8') as f_in:
         _ = f_in.readline()
         line = f_in.readline()

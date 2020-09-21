@@ -1,10 +1,10 @@
 # coding: utf-8
 
+from utils import *
 from nltk.translate.bleu_score import sentence_bleu
 from nltk.translate.nist_score import corpus_nist
 from nltk.translate.meteor_score import single_meteor_score
 from rouge import Rouge
-from utils import *
 
 
 def eval_length(result):
@@ -49,9 +49,19 @@ def eval_bleu(answers, result, n):
 def eval_entity(posts, result, graph, n):
     entity_score_sum = 0
     for post, res in zip(posts, result):
-        near_entities = get_sentence_near_entities(post, graph, n)
+        near_entities_dict = {}
+        for word in post: add_near_entities_dict(near_entities_dict, word, graph, n)
         for word in res:
-            if word in near_entities[n]: entity_score_sum += 1
+            min_n = int('inf')
+            end_flag = False
+            for near_entities in near_entities_dict.values():
+                for near, entities in enumerate(near_entities):
+                    if word in entities:
+                        if near < n or near == 0: end_flag = True
+                        min_n = min(min_n, near)
+                        break
+                if end_flag: break
+            if min_n == n: entity_score_sum += 1
     return entity_score_sum / len(result)
 
 

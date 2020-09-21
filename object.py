@@ -3,7 +3,7 @@
 from param import *
 
 
-def get_INF_weights(target, ngram2freq):
+def get_inf_weights(target, ngram2freq):
     if not ngram2freq: return [1.0]*(len(target)+1)
     weights = []
     target_ = ['_NORM'] * (OBJ_INF_N - 2) + ['_GO'] * min(1, OBJ_INF_N - 1) + target + ['_EOS']
@@ -18,18 +18,16 @@ def get_INF_weights(target, ngram2freq):
 def get_entity_weight(entity, near_entities_dict, idf):
     max_weight = 1.0
     for word, near_entities in near_entities_dict.items():
-        n = len(near_entities) - 1
         for near, entities in enumerate(near_entities):
             if entity in entities:
-                idf_ = idf[word] if word in idf else 1.0
-                weight = idf_ * ((n + 2 - near) ** OBJ_KG_ENH)
-                if weight > max_weight:
-                    max_weight = weight
-                    break
+                idf_ = idf[word] if idf and word in idf else 1.0
+                weight = idf_ * ((OBJ_KG_N + 2 - near) ** OBJ_KG_ENH)
+                max_weight = max(max_weight, weight)
+                break
     return max_weight
 
 
-def get_KG_weights(post, res, graph, idf):
+def get_kg_weights(post, res, graph, idf):
     if not graph: return None
     from utils import add_near_entities_dict
     near_entities_dict = {}

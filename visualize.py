@@ -4,32 +4,38 @@
 import warnings
 warnings.simplefilter('ignore')
 
-import argparse
-import matplotlib.pyplot as plt
 from model import *
 from utils import *
-from decode import entity_enhancer, repetitive_suppression
+from decode import entity_enhance, repetitive_suppression, inf_suppression
+import argparse
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 args = parser.parse_args()
 
 
-def get_near(near, tokens, near_entities):
-    max_n = len(near_entities)
+def get_near(tokens, near_entities_dict):
+    near = [0] * len(tokens)
     for i, token in enumerate(tokens):
-        for n, entities in enumerate(near_entities):
-            if token in entities:
-                near[i] = max_n - n
-                break
+        for near_entities in near_entities_dict.values():
+            max_n = len(near_entities)
+            for n, entities in enumerate(near_entities):
+                if token in entities:
+                    near[i] = max(near[i], max_n - n)
+                    break
+    return near
 
 
 def visualize_greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
-                            graph=None, post=None, post_n=-1, post_enh=0.0, post_ignore_n=-1, res_n=-1, res_enh=0.0, res_ignore_n=0):
+                            graph=None, idf=None, post=None, n=-1, enh=0.0,
+                            kg_post=False, kg_res=False, ngram2freq=None, inf_lambda=0.0,
+                            kg_enh=False):
     res = ['_GO']
     res_rep_dict = {}
-    post_near_entities = get_sentence_near_entities(post, graph, post_n)
-    res_near_entities = []
+    near_entities_dict = {}
+    if kg_post:
+        for word in post: add_near_entities_dict(near_entities_dict, word, graph, n)
     topvs = []
     topts = []
     nears = []
@@ -38,8 +44,8 @@ def visualize_greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
         out, h, _ = decoder(source_tensor, hs, h, None, device)
         out = out[0, 0]
         repetitive_suppression(out, dict, res_rep_dict, rep_sup)
-        entity_enhancer(out, dict, post_near_entities, post_enh, post_ignore_n)
-        entity_enhancer(out, dict, res_near_entities, res_enh, res_ignore_n)
+        if kg_enh: entity_enhance(out, dict, near_entities_dict, idf, enh)
+        inf_suppression(out, dict, ngram2freq, res, inf_lambda)
         if IGNORE_UNK: out[1] = float('-inf')
         out = F.softmax(out, dim=0)
         topv, topi = out.topk(MAX_VISUALIZE_WIDTH)
@@ -47,14 +53,14 @@ def visualize_greedy_search(decoder, hs, h, glove, dict, device, rep_sup=0.0,
         topt = [dict['idx2word'][i] for i in topi]
         topvs.append(topv)
         topts.append(topt)
-        near = [0] * MAX_VISUALIZE_WIDTH
-        get_near(near, topt, post_near_entities)
+        near = get_near(topt, near_entities_dict)
         nears.append(near)
         token = topt[0]
         if token == '_EOS': break
         add_dict(res_rep_dict, token)
         res.append(token)
-        add_word_near_entities(res_near_entities, token, graph, res_n)
+        if kg_res:
+            add_near_entities_dict(near_entities_dict, token, graph, n)
     return res[1:], topvs, topts, nears
 
 
@@ -64,7 +70,6 @@ def draw(name, topvs, topts, nears):
     plt.xlim([0.1, len(topvs)+0.9])
     plt.xlabel("time step", fontsize=15)
     plt.ylabel("probability", fontsize=15)
-    # plt.subplots_adjust(bottom=0.1, top=0.95)
     plt.xticks(np.arange(1, len(topvs)+1, 1.0))
     vs = [topv[0] for topv in topvs]
     plt.plot(np.array(range(1, len(vs)+1)), vs, c='blue')
@@ -82,6 +87,11 @@ def draw(name, topvs, topts, nears):
 
 
 knowledge_graph = load_knowledge_graph("./data/resource.txt")
+idf = load_idf("./data/idf.txt")
+
+ngram2freq = None
+if TEST_INF_N > 0:
+    ngram2freq = load_ngram2freq("./data/" + str(TEST_INF_N) + "ngram2freq.txt")
 
 torch.backends.cudnn.benchmark = True
 
@@ -103,13 +113,15 @@ encoder.eval()
 decoder.eval()
 
 with torch.no_grad():
-    for i, [input, output] in enumerate(dialog_corpus):
+    for i, [input, _] in enumerate(dialog_corpus):
         input_tensor = batch_to_tensor([input], glove_vectors, device)
         hs, h = encoder(input_tensor, None)
         _, topvs, topts, nears = visualize_greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
-                rep_sup=0.4, graph=knowledge_graph, post=input, post_n=2)
+                rep_sup=0.4, graph=knowledge_graph, post=input, n=2,
+                kg_post=True, kg_res=True, ngram2freq=ngram2freq, inf_lambda=0.1)
         draw(visualize_log_name + str(i+1) + ".png", topvs, topts, nears)
-        _, topvs, topts, nears = greedy_kg_res = visualize_greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
-                rep_sup=0.4, graph=knowledge_graph, post=input,
-                post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
+        _, topvs, topts, nears = visualize_greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
+                rep_sup=0.4, graph=knowledge_graph, idf=idf, post=input, n=2, enh=0.1,
+                kg_post=True, kg_res=True, ngram2freq=ngram2freq, inf_lambda=0.1,
+                kg_enh=True)
         draw(visualize_log_name + str(i+1) + "(KG).png", topvs, topts, nears)

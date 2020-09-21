@@ -3,17 +3,22 @@
 import warnings
 warnings.simplefilter('ignore')
 
-import argparse
-import os
 from model import *
 from decode import *
+import argparse
+import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
-parser.add_argument('-n', '--name', type=str, default="", help="analyze name")
+parser.add_argument('-n', '--name', type=str, default="", help="test name")
 args = parser.parse_args()
 
 knowledge_graph = load_knowledge_graph("./data/resource.txt")
+idf = load_idf("./data/idf.txt")
+
+ngram2freq = None
+if TEST_INF_N > 0:
+    ngram2freq = load_ngram2freq("./data/" + str(TEST_INF_N) + "ngram2freq.txt")
 
 torch.backends.cudnn.benchmark = True
 
@@ -23,7 +28,7 @@ device = torch.device(device_name)
 target_dict = create_dictionary("./data/resource.txt")
 glove_vectors = load_glove("./data/glove.840B.300d.txt", target_dict)
 
-test_log_name = "./log/analyze" + args.model + args.name + ".txt"
+test_log_name = "./log/test" + args.model + args.name + ".txt"
 if os.path.exists(test_log_name):
     os.remove(test_log_name)
 
@@ -35,11 +40,6 @@ encoder.load("./model/encoder" + args.model + ".pth", device_name)
 decoder.load("./model/decoder" + args.model + ".pth", device_name)
 encoder.eval()
 decoder.eval()
-
-ngram2freq = None
-if TEST_INF_N > 0:
-    dialog_corpus = load_dialog_corpus("./data/trainset.txt", MAX_DIALOG_CORPUS_SIZE)
-    ngram2freq = get_ngram_frequency(dialog_corpus, TEST_INF_N)
 
 with torch.no_grad():
     for input, output in dialog_corpus:
@@ -66,26 +66,33 @@ with torch.no_grad():
                 rep_sup=0.4, p=0.5)
 
             greedy_kg_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
-                rep_sup=0.4, graph=knowledge_graph, post=input,
-                post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
+                rep_sup=0.4,
+                graph=knowledge_graph, idf=idf, post=input, n=2, enh=0.1,
+                kg_post=True, kg_res=True, ngram2freq=ngram2freq, inf_lambda=0.1)
             mmi_antiLM_kg_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device,
-                rep_sup=0.4, step=5, mmi_lambda=0.2, graph=knowledge_graph, post=input,
-                post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
+                rep_sup=0.4, step=5, mmi_lambda=0.2,
+                graph=knowledge_graph, idf=idf, post=input, n=2, enh=0.1,
+                kg_post=True, kg_res=True, ngram2freq=ngram2freq, inf_lambda=0.1)
             beam_kg_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device,
-                rep_sup=0.4, B=10, length_norm=2.0, sibling_penalty=1.0, graph=knowledge_graph, post=input,
-                post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
+                rep_sup=0.4, B=10, length_norm=2.0, sibling_penalty=1.0,
+                graph=knowledge_graph, idf=idf, post=input, n=2, enh=0.1,
+                kg_post=True, kg_res=True, ngram2freq=ngram2freq, inf_lambda=0.1)
             diverse_beam_kg_ress = diverse_beam_search(decoder, hs, h, glove_vectors, target_dict, device,
-                rep_sup=0.4, B=2, G=5, length_norm=2.0, sibling_penalty=1.0, diversity_strength=0.6, graph=knowledge_graph, post=input,
-                post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
+                rep_sup=0.4, B=2, G=5, length_norm=2.0, sibling_penalty=1.0, diversity_strength=0.6,
+                graph=knowledge_graph, idf=idf, post=input, n=2, enh=0.1,
+                kg_post=True, kg_res=True, ngram2freq=ngram2freq, inf_lambda=0.1)
             sampling_kg_res = sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
-                rep_sup=0.4, temp=0.4, graph=knowledge_graph, post=input,
-                post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
+                rep_sup=0.4, temp=0.4,
+                graph=knowledge_graph, idf=idf, post=input, n=2, enh=0.1,
+                kg_post=True, kg_res=True, ngram2freq=ngram2freq, inf_lambda=0.1)
             top_k_sampling_kg_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
-                rep_sup=0.4, k=10, temp=0.4, graph=knowledge_graph, post=input,
-                post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
+                rep_sup=0.4, k=10, temp=0.4,
+                graph=knowledge_graph, idf=idf, post=input, n=2, enh=0.1,
+                kg_post=True, kg_res=True, ngram2freq=ngram2freq, inf_lambda=0.1)
             top_p_sampling_kg_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
-                rep_sup=0.4, p=0.5, graph=knowledge_graph, post=input,
-                post_n=2, post_enh=0.1, post_ignore_n=-1, res_n=2, res_enh=0.1, res_ignore_n=0)
+                rep_sup=0.4, p=0.5,
+                graph=knowledge_graph, idf=idf, post=input, n=2, enh=0.1,
+                kg_post=True, kg_res=True, ngram2freq=ngram2freq, inf_lambda=0.1)
 
             f.write("greedy:" + ' '.join(greedy_res) + "\n")
             f.write("mmi-antiLM:" + ' '.join(mmi_antiLM_res) + "\n")

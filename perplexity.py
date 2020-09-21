@@ -3,10 +3,10 @@
 import warnings
 warnings.simplefilter('ignore')
 
-import argparse
-import math
 from model import *
 from decode import *
+import argparse
+import math
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")

@@ -3,19 +3,19 @@
 import warnings
 warnings.simplefilter('ignore')
 
+from eval_func import *
 import argparse
 import os
-from eval_func import *
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-t', '--test_name', type=str, default="", help="analyze name")
+parser.add_argument('-t', '--test_name', type=str, default="", help="test name")
 args = parser.parse_args()
 
 knowledge_graph = load_knowledge_graph("./data/resource.txt")
 
-test_log_name = "./log/analyze" + args.test_name + ".txt"
+test_log_name = "./log/test" + args.test_name + ".txt"
 if not os.path.exists(test_log_name):
-    print("No analyze log file")
+    print("No test log file")
     exit()
 
 eval_log_name = "./log/eval" + args.test_name + ".txt"

@@ -1,9 +1,9 @@
 # coding: utf-8
 
+from param import *
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from param import *
 
 
 class Encoder(nn.Module):
