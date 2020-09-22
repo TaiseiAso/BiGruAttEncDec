@@ -11,10 +11,8 @@ import os
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
-parser.add_argument('-n', '--name', type=str, default="", help="analyze name")
+parser.add_argument('-n', '--name', type=str, default="", help="test name")
 args = parser.parse_args()
-
-knowledge_graph = load_knowledge_graph("./data/resource.txt")
 
 torch.backends.cudnn.benchmark = True
 
@@ -24,7 +22,7 @@ device = torch.device(device_name)
 target_dict = create_dictionary("./data/resource.txt")
 glove_vectors = load_glove("./data/glove.840B.300d.txt", target_dict)
 
-test_log_name = "./log/analyze" + args.model + args.name + ".txt"
+test_log_name = "./log/test" + args.model + args.name + ".txt"
 if os.path.exists(test_log_name):
     os.remove(test_log_name)
 
@@ -37,7 +35,7 @@ decoder.load("./model/decoder" + args.model + ".pth", device_name)
 encoder.eval()
 decoder.eval()
 
-rep_sup = 1.0
+rs = 1.0
 
 with torch.no_grad():
     for input, output in dialog_corpus:
@@ -50,7 +48,8 @@ with torch.no_grad():
 
             for ln in [0.0, 0.5, 1.0, 1.5, 2.0]:
                 for b in [2, 5, 10, 20, 30]:
-                    beam_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device, rep_sup=rep_sup, B=b, length_norm=ln)
-                    f.write("beam search " + "{:2.1f} ".format(rep_sup) + str(b) + " {:2.1f}".format(ln) + ":" + ' '.join(reranking(beam_ress)) + "\n")
+                    beam_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                            rep_sup=rs, B=b, length_norm=ln)
+                    f.write("BS RS={} B={} LN={}:{}\n".format(rs, b, ln, ' '.join(reranking(beam_ress))))
 
             f.write("\n")

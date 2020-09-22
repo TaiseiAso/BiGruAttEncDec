@@ -35,6 +35,8 @@ decoder.load("./model/decoder" + args.model + ".pth", device_name)
 encoder.eval()
 decoder.eval()
 
+rs = 1.0
+
 with torch.no_grad():
     for input, output in dialog_corpus:
         with open(test_log_name, 'a', encoding='utf-8') as f:
@@ -44,9 +46,10 @@ with torch.no_grad():
             f.write("post:" + ' '.join(input) + "\n")
             f.write("answer:" + ' '.join(output) + "\n")
 
-            for rs in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
-                greedy_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
-                                           rep_sup=rs)
-                f.write("G RS={}:{}\n".format(rs, ' '.join(greedy_res)))
+            for t in [0.2, 0.4, 0.6, 0.8, 1.0, 1.2]:
+                for k in [8, 16, 32, 64, 128, 256, 512, 1024]:
+                    top_k_sampling_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                                               rep_sup=rs, k=k, temp=t)
+                    f.write("S RS={} K={} T={}:{}\n".format(rs, k, t, ' '.join(top_k_sampling_res)))
 
             f.write("\n")

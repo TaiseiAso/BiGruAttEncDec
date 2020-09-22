@@ -35,6 +35,10 @@ decoder.load("./model/decoder" + args.model + ".pth", device_name)
 encoder.eval()
 decoder.eval()
 
+rs = 1.0
+ln = 1.0
+g = 1
+
 with torch.no_grad():
     for input, output in dialog_corpus:
         with open(test_log_name, 'a', encoding='utf-8') as f:
@@ -44,9 +48,10 @@ with torch.no_grad():
             f.write("post:" + ' '.join(input) + "\n")
             f.write("answer:" + ' '.join(output) + "\n")
 
-            for rs in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
-                greedy_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
-                                           rep_sup=rs)
-                f.write("G RS={}:{}\n".format(rs, ' '.join(greedy_res)))
+            for ds in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
+                for b in [2, 5, 10, 20, 30]:
+                    beam_ress = diverse_beam_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                            rep_sup=rs, B=b, G=g, length_norm=ln, diversity_strength=ds)
+                    f.write("SBS RS={} B={} G={} LN={} DS={}:{}\n".format(rs, b, g, ln, ds, ' '.join(reranking(beam_ress))))
 
             f.write("\n")
