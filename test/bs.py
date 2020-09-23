@@ -12,7 +12,7 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 parser.add_argument('-n', '--name', type=str, default="", help="test name")
-parser.add_argument('-r', '--rs', type=str, default="", help="repetitive suppression")
+parser.add_argument('-r', '--rs', type=float, default=0.0, help="repetitive suppression")
 args = parser.parse_args()
 
 torch.backends.cudnn.benchmark = True

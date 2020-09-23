@@ -7,8 +7,8 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 parser.add_argument('-s', '--step', type=int, default=1, help="experiment step")
-parser.add_argument('-r', '--rs', type=str, default="", help="repetitive suppression by step 1")
-parser.add_argument('-l', '--ln', type=str, default="", help="length normalization by step 2")
+parser.add_argument('-r', '--rs', type=float, default=0.0, help="repetitive suppression by step 1")
+parser.add_argument('-l', '--ln', type=float, default=0.0, help="length normalization by step 2")
 args = parser.parse_args()
 
 if args.step == 1:
