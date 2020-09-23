@@ -12,6 +12,7 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 parser.add_argument('-n', '--name', type=str, default="", help="test name")
+parser.add_argument('-r', '--rs', type=str, default="", help="repetitive suppression")
 args = parser.parse_args()
 
 torch.backends.cudnn.benchmark = True
@@ -35,7 +36,6 @@ decoder.load("./model/decoder" + args.model + ".pth", device_name)
 encoder.eval()
 decoder.eval()
 
-rs = 1.0
 s = 5
 
 with torch.no_grad():
@@ -49,7 +49,7 @@ with torch.no_grad():
 
             for lam in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
                 mmi_antiLM_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device,
-                                                   rep_sup=rs, step=s, mmi_lambda=lam)
-                f.write("G RS={} S={} LAM={}:{}\n".format(rs, s, lam, ' '.join(mmi_antiLM_res)))
+                                                   rep_sup=args.rs, step=s, mmi_lambda=lam)
+                f.write("MMI RS={} S={} LAM={}:{}\n".format(args.rs, s, lam, ' '.join(mmi_antiLM_res)))
 
             f.write("\n")

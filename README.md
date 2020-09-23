@@ -89,7 +89,7 @@
 ### others
 - [x] length normalization
 - [x] repetitive suppression
-- [ ] TF-IDF
+- [x] IDF
 
 ## Reference (random order)
 ### Site

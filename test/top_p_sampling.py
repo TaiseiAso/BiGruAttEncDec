@@ -12,6 +12,7 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 parser.add_argument('-n', '--name', type=str, default="", help="test name")
+parser.add_argument('-r', '--rs', type=str, default="", help="repetitive suppression")
 args = parser.parse_args()
 
 torch.backends.cudnn.benchmark = True
@@ -35,8 +36,6 @@ decoder.load("./model/decoder" + args.model + ".pth", device_name)
 encoder.eval()
 decoder.eval()
 
-rs = 1.0
-
 with torch.no_grad():
     for input, output in dialog_corpus:
         with open(test_log_name, 'a', encoding='utf-8') as f:
@@ -48,7 +47,7 @@ with torch.no_grad():
 
             for p in [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]:
                 top_p_sampling_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
-                                                           rep_sup=rs, p=p)
-                f.write("S RS={} P={}:{}\n".format(rs, p, ' '.join(top_p_sampling_res)))
+                                                           rep_sup=args.rs, p=p)
+                f.write("TPS RS={} P={}:{}\n".format(args.rs, p, ' '.join(top_p_sampling_res)))
 
             f.write("\n")

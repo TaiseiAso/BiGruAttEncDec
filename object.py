@@ -35,7 +35,8 @@ def get_kg_weights(post, res, graph, idf):
         for word in post: add_near_entities_dict(near_entities_dict, word, graph, OBJ_KG_N)
     weights = []
     for i in range(len(res)):
-        if OBJ_KG_RES and i > 0: add_near_entities_dict(near_entities_dict, res[i-1], graph, OBJ_KG_N)
+        if OBJ_KG_RES and i > 0:
+            add_near_entities_dict(near_entities_dict, res[i-1], graph, OBJ_KG_N)
         weight = get_entity_weight(res[i], near_entities_dict, idf)
         weights.append(weight)
     return weights

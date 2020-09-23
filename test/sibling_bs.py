@@ -12,6 +12,8 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 parser.add_argument('-n', '--name', type=str, default="", help="test name")
+parser.add_argument('-r', '--rs', type=str, default="", help="repetitive suppression")
+parser.add_argument('-l', '--ln', type=str, default="", help="length normalization")
 args = parser.parse_args()
 
 torch.backends.cudnn.benchmark = True
@@ -35,9 +37,6 @@ decoder.load("./model/decoder" + args.model + ".pth", device_name)
 encoder.eval()
 decoder.eval()
 
-rs = 1.0
-ln = 1.0
-
 with torch.no_grad():
     for input, output in dialog_corpus:
         with open(test_log_name, 'a', encoding='utf-8') as f:
@@ -50,7 +49,7 @@ with torch.no_grad():
             for sp in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
                 for b in [2, 5, 10, 20, 30]:
                     beam_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device,
-                                            rep_sup=rs, B=b, length_norm=ln, sibling_penalty=sp)
-                    f.write("SBS RS={} B={} LN={} SP={}:{}\n".format(rs, b, ln, sp, ' '.join(reranking(beam_ress))))
+                                            rep_sup=args.rs, B=b, length_norm=args.ln, sibling_penalty=sp)
+                    f.write("SBS RS={} B={} LN={} SP={}:{}\n".format(args.rs, b, args.ln, sp, ' '.join(reranking(beam_ress))))
 
             f.write("\n")

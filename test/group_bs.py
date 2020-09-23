@@ -12,6 +12,8 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 parser.add_argument('-n', '--name', type=str, default="", help="test name")
+parser.add_argument('-r', '--rs', type=str, default="", help="repetitive suppression")
+parser.add_argument('-l', '--ln', type=str, default="", help="length normalization")
 args = parser.parse_args()
 
 torch.backends.cudnn.benchmark = True
@@ -35,8 +37,6 @@ decoder.load("./model/decoder" + args.model + ".pth", device_name)
 encoder.eval()
 decoder.eval()
 
-rs = 1.0
-ln = 1.0
 g = 1
 
 with torch.no_grad():
@@ -51,7 +51,7 @@ with torch.no_grad():
             for ds in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
                 for b in [2, 5, 10, 20, 30]:
                     beam_ress = diverse_beam_search(decoder, hs, h, glove_vectors, target_dict, device,
-                                            rep_sup=rs, B=b, G=g, length_norm=ln, diversity_strength=ds)
-                    f.write("SBS RS={} B={} G={} LN={} DS={}:{}\n".format(rs, b, g, ln, ds, ' '.join(reranking(beam_ress))))
+                                            rep_sup=args.rs, B=b, G=g, length_norm=args.ln, diversity_strength=ds)
+                    f.write("GBS RS={} B={} G={} LN={} DS={}:{}\n".format(args.rs, b, g, args.ln, ds, ' '.join(reranking(beam_ress))))
 
             f.write("\n")

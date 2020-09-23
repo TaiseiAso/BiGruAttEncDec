@@ -5,6 +5,7 @@ from nltk.translate.bleu_score import sentence_bleu
 from nltk.translate.nist_score import corpus_nist
 from nltk.translate.meteor_score import single_meteor_score
 from rouge import Rouge
+import sys
 
 
 def eval_length(result):
@@ -52,7 +53,7 @@ def eval_entity(posts, result, graph, n):
         near_entities_dict = {}
         for word in post: add_near_entities_dict(near_entities_dict, word, graph, n)
         for word in res:
-            min_n = int('inf')
+            min_n = sys.maxsize
             end_flag = False
             for near_entities in near_entities_dict.values():
                 for near, entities in enumerate(near_entities):
