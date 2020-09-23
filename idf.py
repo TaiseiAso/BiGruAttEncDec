@@ -19,7 +19,9 @@ for post, res in dialog_corpus:
 
 df = [[math.log(corpus_size / freq), word] for word, freq in df.items()]
 df = sorted(df, reverse=True)
-print("min: {}, max: {}".format(df[-1][0], df[0][0]))
+
+with open("./data/idf_range.txt", 'w', encoding='utf-8') as f:
+    f.write("min: {}, max: {}\n".format(df[-1][0], df[0][0]))
 
 with open("./data/idf.txt", 'w', encoding='utf-8') as f:
     for idf, word in df:
