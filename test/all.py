@@ -12,8 +12,6 @@ import os
 parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 parser.add_argument('-n', '--name', type=str, default="", help="test name")
-parser.add_argument('-r', '--rs', type=float, default=0.0, help="repetitive suppression")
-parser.add_argument('-l', '--ln', type=float, default=0.0, help="length normalization")
 args = parser.parse_args()
 
 torch.backends.cudnn.benchmark = True
@@ -37,7 +35,13 @@ decoder.load("./model/decoder" + args.model + ".pth", device_name)
 encoder.eval()
 decoder.eval()
 
-b = 1
+rs = 1.0
+ln = 1.0
+bs_b = 5
+s_t = 0.6
+tks_t = 0.8
+tks_k = 32
+tps_p = 0.5
 
 with torch.no_grad():
     for input, output in dialog_corpus:
@@ -48,10 +52,21 @@ with torch.no_grad():
             f.write("post:" + ' '.join(input) + "\n")
             f.write("answer:" + ' '.join(output) + "\n")
 
-            for ds in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
-                for g in [2, 5, 10, 20, 30]:
-                    beam_ress = diverse_beam_search(decoder, hs, h, glove_vectors, target_dict, device,
-                                            rep_sup=args.rs, B=b, G=g, length_norm=args.ln, diversity_strength=ds)
-                    f.write("GBS RS={} B={} G={} LN={} DS={}:{}\n".format(args.rs, b, g, args.ln, ds, ' '.join(reranking(beam_ress))))
+            greedy_res = greedy_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                       rep_sup=rs)
+            beam_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                    rep_sup=rs, B=bs_b, length_norm=ln)
+            sampling_res = sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                           rep_sup=rs, temp=s_t)
+            top_k_sampling_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                                       rep_sup=rs, k=tks_k, temp=tks_t)
+            top_p_sampling_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                                       rep_sup=rs, p=tps_p)
+
+            f.write("G RS={}:{}\n".format(rs, ' '.join(greedy_res)))
+            f.write("BS RS={} B={} LN={}:{}\n".format(rs, bs_b, ln, ' '.join(reranking(beam_ress))))
+            f.write("S RS={} T={}:{}\n".format(rs, s_t, ' '.join(sampling_res)))
+            f.write("TKS RS={} K={} T={}:{}\n".format(rs, tks_k, tks_t, ' '.join(top_k_sampling_res)))
+            f.write("TPS RS={} P={}:{}\n".format(rs, tps_p, ' '.join(top_p_sampling_res)))
 
             f.write("\n")
