@@ -45,9 +45,10 @@ with torch.no_grad():
             f.write("post:" + ' '.join(input) + "\n")
             f.write("answer:" + ' '.join(output) + "\n")
 
-            for p in [0.5, 0.6, 0.7, 0.8, 0.9, 0.95]:
-                top_p_sampling_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
-                                                           rep_sup=args.rs, p=p)
-                f.write("TPS RS={} P={}:{}\n".format(args.rs, p, ' '.join(top_p_sampling_res)))
+            for t in [0.2, 0.4, 0.6, 0.8, 1.0, 1.2]:
+                for p in [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99]:
+                    top_p_sampling_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                                               rep_sup=args.rs, p=p, temp=t)
+                    f.write("TPS RS={} P={} T={}:{}\n".format(args.rs, p, t, ' '.join(top_p_sampling_res)))
 
             f.write("\n")

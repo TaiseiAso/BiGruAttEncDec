@@ -39,9 +39,10 @@ rs = 1.0
 ln = 1.0
 bs_b = 5
 s_t = 0.6
-tks_t = 0.8
 tks_k = 32
+tks_t = 0.8
 tps_p = 0.5
+tps_t = 0.8
 
 with torch.no_grad():
     for input, output in dialog_corpus:
@@ -61,12 +62,12 @@ with torch.no_grad():
             top_k_sampling_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
                                                        rep_sup=rs, k=tks_k, temp=tks_t)
             top_p_sampling_res = top_p_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
-                                                       rep_sup=rs, p=tps_p)
+                                                       rep_sup=rs, p=tps_p, temp=tps_t)
 
             f.write("G RS={}:{}\n".format(rs, ' '.join(greedy_res)))
             f.write("BS RS={} B={} LN={}:{}\n".format(rs, bs_b, ln, ' '.join(reranking(beam_ress))))
             f.write("S RS={} T={}:{}\n".format(rs, s_t, ' '.join(sampling_res)))
             f.write("TKS RS={} K={} T={}:{}\n".format(rs, tks_k, tks_t, ' '.join(top_k_sampling_res)))
-            f.write("TPS RS={} P={}:{}\n".format(rs, tps_p, ' '.join(top_p_sampling_res)))
+            f.write("TPS RS={} P={} T={}:{}\n".format(rs, tps_p, tps_t, ' '.join(top_p_sampling_res)))
 
             f.write("\n")

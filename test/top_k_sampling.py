@@ -46,7 +46,7 @@ with torch.no_grad():
             f.write("answer:" + ' '.join(output) + "\n")
 
             for t in [0.2, 0.4, 0.6, 0.8, 1.0, 1.2]:
-                for k in [8, 16, 32, 64, 128, 256, 512, 1024]:
+                for k in [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024]:
                     top_k_sampling_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
                                                                rep_sup=args.rs, k=k, temp=t)
                     f.write("TKS RS={} K={} T={}:{}\n".format(args.rs, k, t, ' '.join(top_k_sampling_res)))

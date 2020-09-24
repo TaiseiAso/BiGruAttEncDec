@@ -116,7 +116,7 @@ def top_k_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, k=1,
     return res[1:]
 
 
-def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.0,
+def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.0, temp=1.0,
                           graph=None, idf=None, post=None, n=-1, enh=0.0, kg_post=False, kg_res=False, ngram2freq=None, inf_lambda=0.0):
     res = ['_GO']
     res_rep_dict = {}
@@ -131,7 +131,7 @@ def top_p_sampling_search(decoder, hs, h, glove, dict, device, rep_sup=0.0, p=0.
         entity_enhance(out, dict, near_entities_dict, idf, enh)
         inf_suppression(out, dict, ngram2freq, res, inf_lambda)
         if IGNORE_UNK: out[1] = float('-inf')
-        out = F.softmax(out, dim=0)
+        out = F.softmax(out / temp, dim=0)
         topi = np.argsort(out).tolist()[::-1]
         topv = [out[i] for i in topi]
         sumi, sumv = 0, 0
