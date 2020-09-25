@@ -38,6 +38,8 @@ decoder.eval()
 rs = 1.0
 ln = 1.0
 bs_b = 5
+mmi_s = 5
+mmi_lam = 0.6
 s_t = 0.6
 tks_k = 32
 tks_t = 0.8
@@ -57,6 +59,8 @@ with torch.no_grad():
                                        rep_sup=rs)
             beam_ress = beam_search(decoder, hs, h, glove_vectors, target_dict, device,
                                     rep_sup=rs, B=bs_b, length_norm=ln)
+            mmi_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                        rep_sup=rs, step=mmi_s, mmi_lambda=mmi_lam)
             sampling_res = sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
                                            rep_sup=rs, temp=s_t)
             top_k_sampling_res = top_k_sampling_search(decoder, hs, h, glove_vectors, target_dict, device,
@@ -66,6 +70,7 @@ with torch.no_grad():
 
             f.write("G RS={}:{}\n".format(rs, ' '.join(greedy_res)))
             f.write("BS RS={} B={} LN={}:{}\n".format(rs, bs_b, ln, ' '.join(reranking(beam_ress))))
+            f.write("MMI RS={} S={} LAM={}:{}\n".format(rs, mmi_s, mmi_lam, ' '.join(mmi_res)))
             f.write("S RS={} T={}:{}\n".format(rs, s_t, ' '.join(sampling_res)))
             f.write("TKS RS={} K={} T={}:{}\n".format(rs, tks_k, tks_t, ' '.join(top_k_sampling_res)))
             f.write("TPS RS={} P={} T={}:{}\n".format(rs, tps_p, tps_t, ' '.join(top_p_sampling_res)))

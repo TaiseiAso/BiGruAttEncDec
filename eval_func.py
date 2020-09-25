@@ -69,16 +69,12 @@ def eval_entity(posts, result, graph, n):
 def eval_rouge(answers, result, name):
     if name not in ['rouge-1', 'rouge-2', 'rouge-l']:
         name = 'rouge-l'
-    answers_ = []
-    result_ = []
-    for ans, res in zip(answers, result):
-        if not ans: ans = ['.']
-        if not res: res = ['.']
-        answers_.append(' '.join(ans))
-        result_.append(' '.join(res))
     rouge = Rouge()
-    scores = rouge.get_scores(result_, answers_, avg=True)
-    return 100 * scores[name]['f']
+    score = 0
+    for ans, res in zip(answers, result):
+        if ans not in [[], ["."]] and res not in [[], ["."]]:
+            score += rouge.get_scores(' '.join(res), ' '.join(ans))[0][name]['f']
+    return 100 * score / len(result)
 
 
 def eval_nist(answers, result, n=5):
