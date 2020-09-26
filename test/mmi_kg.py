@@ -13,7 +13,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-m', '--model', type=str, default="", help="model name")
 parser.add_argument('-n', '--name', type=str, default="", help="test name")
 parser.add_argument('-r', '--rs', type=float, default=0.0, help="repetitive suppression")
+parser.add_argument('-l', '--lam', type=float, default=0.0, help="mmi lambda")
 args = parser.parse_args()
+
+knowledge_graph = load_knowledge_graph("./data/resource.txt")
+idf = load_idf("./data/idf.txt")
 
 torch.backends.cudnn.benchmark = True
 
@@ -47,9 +51,12 @@ with torch.no_grad():
             f.write("post:" + ' '.join(input) + "\n")
             f.write("answer:" + ' '.join(output) + "\n")
 
-            for lam in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
-                mmi_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device,
-                                                   rep_sup=args.rs, step=s, mmi_lambda=lam)
-                f.write("MMI RS={} S={} LAM={}:{}\n".format(args.rs, s, lam, ' '.join(mmi_res)))
+            for n in [0, 1, 2]:
+                for enh in [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]:
+                    mmi_kg_res = mmi_antiLM_search(decoder, hs, h, glove_vectors, target_dict, device,
+                                                   rep_sup=args.rs, step=s, mmi_lambda=args.lam,
+                                                   graph=knowledge_graph, idf=idf, post=input, n=n, enh=enh,
+                                                   kg_post=True, kg_res=True)
+                    f.write("MMIK RS={} S={} LAM={} N={} ENH={}:{}\n".format(args.rs, s, args.lam, n, enh, ' '.join(mmi_kg_res)))
 
             f.write("\n")
